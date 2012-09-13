@@ -14,7 +14,7 @@ var wg sync.WaitGroup
 
 func create_proc(proc string, cmdline string, logger *clogger) *proc_info {
 	cs := []string {"cmd", "/c", cmdline}
-	cmd := exec.Command(cs[0], cs...)
+	cmd := exec.Command(cs[0], cs[1:]...)
 	cmd.Stdin = nil
 	cmd.Stdout = logger
 	cmd.Stderr = logger
