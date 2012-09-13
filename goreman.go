@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
+	//"path/filepath"
 	"strings"
-	"syscall"
+	//"syscall"
 )
 
 const version = "0.0.1"
@@ -82,10 +82,10 @@ func main() {
 	}
 	cmd := os.Args[1]
 
-	pidfile := filepath.Join(os.TempDir(), "goreman.pid")
 	var err error
-	var pidf *os.File
-	var b []byte
+	//pidfile := filepath.Join(os.TempDir(), "goreman.pid")
+	//var pidf *os.File
+	//var b []byte
 	switch cmd {
 	case "check":
 		println("not implemented")
@@ -97,14 +97,17 @@ func main() {
 		usage()
 		break
 	case "run":
+		/*
 		b, err = ioutil.ReadFile(pidfile)
 		if err != nil {
 			break
 		}
 		println(string(b))
+		*/
 		println("not implemented")
 		break
 	case "start":
+		/*
 		pidf, err = os.Create(pidfile)
 		if err != nil {
 			break
@@ -114,6 +117,7 @@ func main() {
 			pidf.Close()
 			syscall.Unlink(pidfile)
 		}()
+		*/
 		err = start(os.Args[2:])
 		break
 	case "version":
