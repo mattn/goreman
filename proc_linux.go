@@ -29,7 +29,7 @@ func start(proc []string) error {
 	for k, v := range entry {
 		go func(k string, v string) {
 			log.Printf("[%s] START", k)
-			cs := []string {"cmd", "/c", v}
+			cs := []string {"sh", "-c", v}
 			cmd := exec.Command(cs[0], cs...)
 			cmd.Stdin = nil
 			cmd.Stdout = &logger{k}
