@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -152,10 +153,11 @@ func main() {
 		}
 		keys := make([]string, len(entry))
 		i := 0
-		for _, v := range entry {
-			keys[i] = v
+		for k := range entry {
+			keys[i] = k
 			i++
 		}
+		sort.Strings(keys)
 		fmt.Printf("valid procfile detected (%s)\n", strings.Join(keys, ", "))
 		break
 	case "export":
@@ -196,6 +198,8 @@ func main() {
 	case "version":
 		fmt.Println(version)
 		break
+	default:
+		usage()
 	}
 
 	if err != nil {
