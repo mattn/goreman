@@ -4,22 +4,22 @@ import (
 	"log"
 	"strings"
 	"sync"
-)
-
-const (
-	Black = "\x1b[30m"
-	Red = "\x1b[31m"
-	Green = "\x1b[32m"
-	Yellow = "\x1b[33m"
-	Blue = "\x1b[34m"
-	Magenta = "\x1b[35m"
-	Cyan = "\x1b[36m"
-	White = "\x1b[37m"
+	"github.com/mewkiz/pkg/term"
 )
 
 type clogger struct {
+	i int
 	p string
 }
+var colors = []string {
+	term.FgGreen,
+	term.FgCyan,
+	term.FgMagenta,
+	term.FgYellow,
+	term.FgBlue,
+	term.FgRed,
+}
+var ci int
 
 var mutex = new(sync.Mutex)
 
@@ -31,7 +31,9 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 			line = line[0:len(line)-2]
 		}
 		if line != "" {
+			term.Color(os.Stderr, colors[l.i])
 			log.Printf("[%s] %s", l.p, line)
+			term.Color(os.Stderr, term.FgWhite)
 		}
 	}
 	n = len(p)
@@ -39,5 +41,10 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 }
 
 func create_logger(proc string) *clogger {
-	return &clogger {proc}
+	l := &clogger {proc}
+	ci++
+	if ci >= len(colors) {
+		ci = 0
+	}
+	return l
 }
