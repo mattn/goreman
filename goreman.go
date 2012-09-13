@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 const version = "0.0.1"
@@ -63,7 +65,12 @@ type logger struct {
 
 func (l *logger) Write(p []byte) (n int, err error) {
 	for _, line := range strings.Split(string(p), "\n") {
-		log.Printf("[%s] %s", l.p, line)
+		if len(line) > 0 && line[len(line)-1] == '\n' {
+			line = line[0:len(line)-2]
+		}
+		if line != "" {
+			log.Printf("[%s] %s", l.p, line)
+		}
 	}
 	n = len(p)
 	return
@@ -75,7 +82,10 @@ func main() {
 	}
 	cmd := os.Args[1]
 
+	pidfile := filepath.Join(os.TempDir(), "goreman.pid")
 	var err error
+	var pidf *os.File
+	var b []byte
 	switch cmd {
 	case "check":
 		println("not implemented")
@@ -87,9 +97,23 @@ func main() {
 		usage()
 		break
 	case "run":
+		b, err = ioutil.ReadFile(pidfile)
+		if err != nil {
+			break
+		}
+		println(string(b))
 		println("not implemented")
 		break
 	case "start":
+		pidf, err = os.Create(pidfile)
+		if err != nil {
+			break
+		}
+		fmt.Fprintf(pidf, "%d", syscall.Getpid())
+		defer func() {
+			pidf.Close()
+			syscall.Unlink(pidfile)
+		}()
 		err = start(os.Args[2:])
 		break
 	case "version":
