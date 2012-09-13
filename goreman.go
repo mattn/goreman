@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"errors"
 	"os/exec"
@@ -28,20 +29,15 @@ const (
 func usage() {
 	println(`
 Tasks:
-  goreman check                  # Validate your application's Procfile
-  goreman export FORMAT LOCATION # Export the application to another process...
-
-  goreman help [TASK]            # Describe available tasks or one specific ...
-
-  goreman run COMMAND [ARGS...]  # Run a command using your application's en...
-
-  goreman start [PROCESS]        # Start the application (or a specific PROC...
-
+  goreman check                  # Show entries in Procfile
+  goreman help [TASK]            # Show this help
+  goreman run COMMAND [ARGS...]  # Run a command (start/stop/restart)
+  goreman start [PROCESS]        # Start the application
   goreman version                # Display Goreman version
 
 Options:
-  -f, [--procfile=PROCFILE]  # Default: Procfile
-  -d, [--root=ROOT]          # Default: Procfile directory
+  -f # Default: Procfile
+  -d # Default: Procfile directory
 `[1:])
 	os.Exit(0)
 }
@@ -118,17 +114,49 @@ type proc_info struct {
 var procs map[string]*proc_info
 var entry map[string]string
 
+func readEntry() error {
+	entry = map[string]string {}
+	procs = map[string]*proc_info {}
+	content, err := ioutil.ReadFile(*procfile)
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(string(content), "\n") {
+		tokens := strings.SplitN(line, ":", 2)
+		if len(tokens) == 2 && tokens[0][0] != '#' {
+			entry[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
+		}
+	}
+	if len(entry) == 0 {
+		return errors.New("No valid entry")
+	}
+	return nil
+}
+
+var procfile = flag.String("f", "Procfile", "proc file")
+
 func main() {
-	if len(os.Args) == 1 {
+	flag.Parse()
+
+	if flag.NArg() == 0 {
 		usage()
 	}
-	cmd := os.Args[1]
+	cmd := flag.Args()[0]
 
-	var content []byte
 	var err error
 	switch cmd {
 	case "check":
-		println("not implemented")
+		err = readEntry()
+		if err != nil {
+			break
+		}
+		keys := make([]string, len(entry))
+		i := 0
+		for _, v := range entry {
+			keys[i] = v
+			i++
+		}
+		fmt.Printf("valid procfile detected (%s)\n", strings.Join(keys, ", "))
 		break
 	case "export":
 		println("not implemented")
@@ -137,26 +165,14 @@ func main() {
 		usage()
 		break
 	case "run":
-		if len(os.Args) != 4 {
+		if flag.NArg() != 3 {
 			usage()
 		}
-		err = run(os.Args[2], os.Args[3])
+		err = run(flag.Args()[1], flag.Args()[2])
 		break
 	case "start":
-		entry = map[string]string {}
-		procs = map[string]*proc_info {}
-		content, err = ioutil.ReadFile("Procfile")
+		err = readEntry()
 		if err != nil {
-			break
-		}
-		for _, line := range strings.Split(string(content), "\n") {
-			tokens := strings.SplitN(line, ":", 2)
-			if len(tokens) == 2 && tokens[0][0] != '#' {
-				entry[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
-			}
-		}
-		if len(entry) == 0 {
-			err = errors.New("No valid entry")
 			break
 		}
 		go func() {
@@ -175,7 +191,7 @@ func main() {
 				rpc.ServeConn(client)
 			}
 		}()
-		err = start_procs(os.Args[2:])
+		err = start_procs(flag.Args()[1:])
 		break
 	case "version":
 		fmt.Println(version)
