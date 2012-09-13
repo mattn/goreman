@@ -1,0 +1,18 @@
+# Foreman
+
+Clone of foreman written in golang
+
+https://github.com/ddollar/foreman
+
+## Getting Started
+
+    go get github.com/mattn/goreman
+
+## Authors
+
+#### Created and maintained by
+Yasuhiro Matsumoto
+
+## License
+
+MIT
