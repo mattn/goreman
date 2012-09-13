@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -11,22 +12,23 @@ import (
 
 var wg sync.WaitGroup
 
-func create_proc(proc string, cmdline string) *proc_info {
+func create_proc(proc string, cmdline string, logger *clogger) *proc_info {
 	cs := []string {"cmd", "/c", cmdline}
 	cmd := exec.Command(cs[0], cs...)
 	cmd.Stdin = nil
-	cmd.Stdout = &logger{proc}
-	cmd.Stderr = &logger{proc}
+	cmd.Stdout = logger
+	cmd.Stderr = logger
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
+
 	err := cmd.Start()
 	if err != nil {
 		log.Fatal("failed to execute external command. %s", err)
 		return nil
 	}
-	return &proc_info { proc, cmdline, true, cmd }
+	return &proc_info { proc, cmdline, true, cmd, logger }
 }
 
 func stop(proc string, quit bool) error {
@@ -55,12 +57,13 @@ func start(proc string) error {
 	}
 
 	go func(k string, v string) {
-		log.Printf("[%s] START", k)
-		procs[k] = create_proc(k, v)
+		l := create_logger(k)
+		fmt.Fprintf(l, "[%s] START", k)
+		procs[k] = create_proc(k, v, l)
 		procs[k].c.Wait()
 		q := procs[k].q
 		procs[k] = nil
-		log.Printf("[%s] QUIT", k)
+		fmt.Fprintf(l, "[%s] QUIT", k)
 		if q {
 			wg.Done()
 		}
@@ -77,6 +80,9 @@ func restart(proc string) error {
 }
 
 func start_procs(proc []string) error {
+	cerr.Save()
+
+	procs = map[string]*proc_info {}
 	if len(proc) != 0 {
 		tmp := map[string]string {}
 		for _, v := range proc {

@@ -16,17 +16,6 @@ import (
 
 const version = "0.0.1"
 
-const (
-	Black = "\x1b[30m"
-	Red = "\x1b[31m"
-	Green = "\x1b[32m"
-	Yellow = "\x1b[33m"
-	Blue = "\x1b[34m"
-	Magenta = "\x1b[35m"
-	Cyan = "\x1b[36m"
-	White = "\x1b[37m"
-)
-
 func usage() {
 	println(`
 Tasks:
@@ -41,23 +30,6 @@ Options:
   -d # Default: Procfile directory
 `[1:])
 	os.Exit(0)
-}
-
-type logger struct {
-	p string
-}
-
-func (l *logger) Write(p []byte) (n int, err error) {
-	for _, line := range strings.Split(string(p), "\n") {
-		if len(line) > 0 && line[len(line)-1] == '\n' {
-			line = line[0:len(line)-2]
-		}
-		if line != "" {
-			log.Printf("[%s] %s", l.p, line)
-		}
-	}
-	n = len(p)
-	return
 }
 
 type Goreman int
@@ -106,18 +78,19 @@ func run(cmd, proc string) error {
 	return errors.New("Unknown command")
 }
 
+var entry map[string]string
+
 type proc_info struct {
 	p string
 	l string
 	q bool
 	c *exec.Cmd
+	w *clogger
 }
 var procs map[string]*proc_info
-var entry map[string]string
 
 func readEntry() error {
 	entry = map[string]string {}
-	procs = map[string]*proc_info {}
 	content, err := ioutil.ReadFile(*procfile)
 	if err != nil {
 		return err
