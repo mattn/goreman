@@ -27,7 +27,6 @@ Tasks:
 
 Options:
   -f # Default: Procfile
-  -d # Default: Procfile directory
 `[1:])
 	os.Exit(0)
 }
