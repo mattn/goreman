@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"errors"
+	"os/exec"
 	"io/ioutil"
 	"log"
+	"net"
+	"net/rpc"
 	"os"
-	//"path/filepath"
 	"strings"
-	//"syscall"
 )
 
 const version = "0.0.1"
@@ -44,21 +46,6 @@ Options:
 	os.Exit(0)
 }
 
-func getEntry() (map[string]string, error) {
-	content, err := ioutil.ReadFile("Procfile")
-	if err != nil {
-		return nil, err
-	}
-	entry := map[string]string {}
-	for _, line := range strings.Split(string(content), "\n") {
-		tokens := strings.SplitN(line, ":", 2)
-		if len(tokens) == 2 && tokens[0][0] != '#' {
-			entry[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
-		}
-	}
-	return entry, nil
-}
-
 type logger struct {
 	p string
 }
@@ -76,16 +63,69 @@ func (l *logger) Write(p []byte) (n int, err error) {
 	return
 }
 
+type Goreman int
+
+func (r *Goreman) Start(proc string, ret *string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	return start(proc)
+}
+
+func (r *Goreman) Stop(proc string, ret *string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	return stop(proc, false)
+}
+
+func (r *Goreman) Restart(proc string, ret *string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	return restart(proc)
+}
+
+func run(cmd, proc string) error {
+	client, err := rpc.Dial("tcp", "127.0.0.1:5555")
+	if err != nil {
+		return err
+	}
+	var ret string
+	switch cmd {
+	case "start":
+		return client.Call("Goreman.Start", proc, &ret)
+	case "stop":
+		return client.Call("Goreman.Stop", proc, &ret)
+	case "restart":
+		return client.Call("Goreman.Restart", proc, &ret)
+	}
+	return errors.New("Unknown command")
+}
+
+type proc_info struct {
+	p string
+	l string
+	q bool
+	c *exec.Cmd
+}
+var procs map[string]*proc_info
+var entry map[string]string
+
 func main() {
 	if len(os.Args) == 1 {
-		usage();
+		usage()
 	}
 	cmd := os.Args[1]
 
+	var content []byte
 	var err error
-	//pidfile := filepath.Join(os.TempDir(), "goreman.pid")
-	//var pidf *os.File
-	//var b []byte
 	switch cmd {
 	case "check":
 		println("not implemented")
@@ -97,28 +137,45 @@ func main() {
 		usage()
 		break
 	case "run":
-		/*
-		b, err = ioutil.ReadFile(pidfile)
-		if err != nil {
-			break
+		if len(os.Args) != 4 {
+			usage()
 		}
-		println(string(b))
-		*/
-		println("not implemented")
+		err = run(os.Args[2], os.Args[3])
 		break
 	case "start":
-		/*
-		pidf, err = os.Create(pidfile)
+		entry = map[string]string {}
+		procs = map[string]*proc_info {}
+		content, err = ioutil.ReadFile("Procfile")
 		if err != nil {
 			break
 		}
-		fmt.Fprintf(pidf, "%d", syscall.Getpid())
-		defer func() {
-			pidf.Close()
-			syscall.Unlink(pidfile)
+		for _, line := range strings.Split(string(content), "\n") {
+			tokens := strings.SplitN(line, ":", 2)
+			if len(tokens) == 2 && tokens[0][0] != '#' {
+				entry[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
+			}
+		}
+		if len(entry) == 0 {
+			err = errors.New("No valid entry")
+			break
+		}
+		go func() {
+			gm := new(Goreman)
+			rpc.Register(gm)
+			server, err := net.Listen("tcp", "0.0.0.0:5555")
+			if err != nil {
+				return
+			}
+			for {
+				client, err := server.Accept()
+				if err != nil {
+					log.Println(err.Error())
+					continue
+				}
+				rpc.ServeConn(client)
+			}
 		}()
-		*/
-		err = start(os.Args[2:])
+		err = start_procs(os.Args[2:])
 		break
 	case "version":
 		fmt.Println(version)

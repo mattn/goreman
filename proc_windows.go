@@ -9,26 +9,74 @@ import (
 	"syscall"
 )
 
-var procs map[string]*exec.Cmd
+var wg sync.WaitGroup
 
-func start(proc []string) error {
+func create_proc(proc string, cmdline string) *proc_info {
+	cs := []string {"cmd", "/c", cmdline}
+	cmd := exec.Command(cs[0], cs...)
+	cmd.Stdin = nil
+	cmd.Stdout = &logger{proc}
+	cmd.Stderr = &logger{proc}
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
+	}
+	err := cmd.Start()
+	if err != nil {
+		log.Fatal("failed to execute external command. %s", err)
+		return nil
+	}
+	return &proc_info { proc, cmdline, true, cmd }
+}
+
+func stop(proc string, quit bool) error {
+	if procs[proc] == nil {
+		return nil
+	}
+
 	dll, err := syscall.LoadDLL("kernel32.dll")
 	if err != nil {
 		return err
 	}
-	f, err := dll.FindProc("SetConsoleCtrlHandler")
+	f, err := dll.FindProc("GenerateConsoleCtrlEvent")
 	if err != nil {
-		return err
-	}
-	r, _, err := f.Call(0, 1)
-	if r == 0 {
 		return err
 	}
 
-	entry, err := getEntry()
+	procs[proc].q = quit
+	pid := procs[proc].c.Process.Pid
+	f.Call(syscall.CTRL_C_EVENT, uintptr(pid))
+	return nil
+}
+
+func start(proc string) error {
+	if procs[proc] != nil {
+		return nil
+	}
+
+	go func(k string, v string) {
+		log.Printf("[%s] START", k)
+		procs[k] = create_proc(k, v)
+		procs[k].c.Wait()
+		q := procs[k].q
+		procs[k] = nil
+		log.Printf("[%s] QUIT", k)
+		if q {
+			wg.Done()
+		}
+	}(proc, entry[proc])
+	return nil
+}
+
+func restart(proc string) error {
+	err := stop(proc, false)
 	if err != nil {
 		return err
 	}
+	return start(proc)
+}
+
+func start_procs(proc []string) error {
 	if len(proc) != 0 {
 		tmp := map[string]string {}
 		for _, v := range proc {
@@ -37,34 +85,23 @@ func start(proc []string) error {
 		entry = tmp
 	}
 
-	var wg sync.WaitGroup
 	wg.Add(len(entry))
-	for k, v := range entry {
-		go func(k string, v string) {
-			log.Printf("[%s] START", k)
-			cs := []string {"cmd", "/c", v}
-			cmd := exec.Command(cs[0], cs...)
-			cmd.Stdin = nil
-			cmd.Stdout = &logger{k}
-			cmd.Stderr = &logger{k}
-
-			err = cmd.Start()
-			if err != nil {
-				log.Fatal("failed to execute external command. %s", err)
-				os.Exit(1)
-			}
-
-			cmd.Wait()
-			wg.Done()
-			log.Printf("[%s] QUIT", k)
-		}(k, v)
+	for k := range entry {
+		start(k)
 	}
 
 	go func() {
 		sc := make(chan os.Signal, 10)
-		signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, os.Interrupt)
-		for sig := range sc {
-			println(sig)
+		signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+		for _ = range sc {
+			for k, v := range procs {
+				if v == nil {
+					wg.Done()
+				} else {
+					stop(k, true)
+				}
+			}
+			break
 		}
 	}()
 
