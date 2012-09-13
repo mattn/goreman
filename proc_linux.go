@@ -13,8 +13,8 @@ import (
 var wg sync.WaitGroup
 
 func create_proc(proc string, cmdline string, logger *clogger) *proc_info {
-	cs := []string {"sh", "-c", cmdline}
-	cmd := exec.Command(cs[0], cs...)
+	cs := []string {"/bin/sh", "-c", cmdline}
+	cmd := exec.Command(cs[0], cs[1:]...)
 	cmd.Stdin = nil
 	cmd.Stdout = logger
 	cmd.Stderr = logger
@@ -35,11 +35,12 @@ func stop(proc string, quit bool) error {
 	procs[proc].q = quit
 	pid := procs[proc].c.Process.Pid
 
-	syscall.Kill(pid, signal.SIGINT)
+	syscall.Kill(pid, syscall.SIGINT)
 	return nil
 }
 
 func start(proc string) error {
+	procs = map[string]*proc_info {}
 	if procs[proc] != nil {
 		return nil
 	}

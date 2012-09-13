@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/mewkiz/pkg/term"
 	"log"
 	"strings"
 	"sync"
-	"github.com/mewkiz/pkg/term"
 )
 
 type clogger struct {
@@ -31,9 +31,7 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 			line = line[0:len(line)-2]
 		}
 		if line != "" {
-			term.Color(os.Stderr, colors[l.i])
-			log.Printf("[%s] %s", l.p, line)
-			term.Color(os.Stderr, term.FgWhite)
+			log.Printf("[%s] %s", term.Color(l.p, colors[l.i]), term.Color(line, colors[l.i]))
 		}
 	}
 	n = len(p)
@@ -41,7 +39,7 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 }
 
 func create_logger(proc string) *clogger {
-	l := &clogger {proc}
+	l := &clogger {ci, proc}
 	ci++
 	if ci >= len(colors) {
 		ci = 0
