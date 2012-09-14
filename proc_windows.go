@@ -90,12 +90,9 @@ func start_procs() error {
 		sc := make(chan os.Signal, 10)
 		signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 		for _ = range sc {
-			for k, v := range procs {
-				if v == nil {
-					wg.Done()
-				} else {
-					stop_proc(k, true)
-				}
+			for proc, _ := range procs {
+				stop_proc(proc, true)
+				wg.Done()
 			}
 			break
 		}

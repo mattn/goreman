@@ -1,8 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"errors"
-	"log"
+	//"log"
 	"net"
 	"net/rpc"
 )
@@ -37,7 +38,7 @@ func (r *Goreman) Restart(proc string, ret *string) (err error) {
 }
 
 func run(cmd, proc string) error {
-	client, err := rpc.Dial("tcp", "127.0.0.1:5555")
+	client, err := rpc.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
 	if err != nil {
 		return err
 	}
@@ -56,14 +57,14 @@ func run(cmd, proc string) error {
 func start_server() error {
 	gm := new(Goreman)
 	rpc.Register(gm)
-	server, err := net.Listen("tcp", "0.0.0.0:5555")
+	server, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))
 	if err != nil {
 		return err
 	}
 	for {
 		client, err := server.Accept()
 		if err != nil {
-			log.Println(err.Error())
+			//log.Println(err.Error())
 			continue
 		}
 		rpc.ServeConn(client)

@@ -23,6 +23,7 @@ func usage() {
 
 Options:
   -f # Default: Procfile
+  -p # Default: 5555
 `)
 	os.Exit(0)
 }
@@ -69,6 +70,8 @@ func read_env() error {
 	}
 	return nil
 }
+
+var port = flag.Uint("p", 5555, "port")
 
 func check() error {
 	err := read_procfile()
