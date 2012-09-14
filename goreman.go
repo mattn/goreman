@@ -6,9 +6,6 @@ import (
 	"errors"
 	"os/exec"
 	"io/ioutil"
-	"log"
-	"net"
-	"net/rpc"
 	"os"
 	"sort"
 	"strings"
@@ -30,52 +27,6 @@ Options:
 	os.Exit(0)
 }
 
-type Goreman int
-
-func (r *Goreman) Start(proc string, ret *string) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = r.(error)
-		}
-	}()
-	return start(proc)
-}
-
-func (r *Goreman) Stop(proc string, ret *string) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = r.(error)
-		}
-	}()
-	return stop(proc, false)
-}
-
-func (r *Goreman) Restart(proc string, ret *string) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = r.(error)
-		}
-	}()
-	return restart(proc)
-}
-
-func run(cmd, proc string) error {
-	client, err := rpc.Dial("tcp", "127.0.0.1:5555")
-	if err != nil {
-		return err
-	}
-	var ret string
-	switch cmd {
-	case "start":
-		return client.Call("Goreman.Start", proc, &ret)
-	case "stop":
-		return client.Call("Goreman.Stop", proc, &ret)
-	case "restart":
-		return client.Call("Goreman.Restart", proc, &ret)
-	}
-	return errors.New("Unknown command")
-}
-
 type proc_info struct {
 	proc string
 	cmdline string
@@ -84,7 +35,7 @@ type proc_info struct {
 }
 var procs map[string]*proc_info
 
-func readProcfile() error {
+func read_procfile() error {
 	procs = map[string]*proc_info {}
 	content, err := ioutil.ReadFile(*procfile)
 	if err != nil {
@@ -105,6 +56,38 @@ func readProcfile() error {
 
 var procfile = flag.String("f", "Procfile", "proc file")
 
+func check() error {
+	err := read_procfile()
+	if err != nil {
+		return err
+	}
+	keys := make([]string, len(procs))
+	i := 0
+	for k := range procs {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+	fmt.Printf("valid procfile detected (%s)\n", strings.Join(keys, ", "))
+	return nil
+}
+
+func start() error {
+	err := read_procfile()
+	if err != nil {
+		return err
+	}
+	if flag.NArg() > 1 {
+		tmp := map[string]*proc_info {}
+		for _, v := range flag.Args()[1:] {
+			tmp[v] = procs[v]
+		}
+		procs = tmp
+	}
+	go start_server()
+	return start_procs()
+}
+
 func main() {
 	flag.Parse()
 
@@ -116,18 +99,7 @@ func main() {
 	var err error
 	switch cmd {
 	case "check":
-		err = readProcfile()
-		if err != nil {
-			break
-		}
-		keys := make([]string, len(procs))
-		i := 0
-		for k := range procs {
-			keys[i] = k
-			i++
-		}
-		sort.Strings(keys)
-		fmt.Printf("valid procfile detected (%s)\n", strings.Join(keys, ", "))
+		err = check()
 		break
 	case "export":
 		println("not implemented")
@@ -139,38 +111,11 @@ func main() {
 		if flag.NArg() != 3 {
 			usage()
 		}
-		err = run(flag.Args()[1], flag.Args()[2])
+		cmd, proc := flag.Args()[1], flag.Args()[2]
+		err = run(cmd, proc)
 		break
 	case "start":
-		err = readProcfile()
-		if err != nil {
-			break
-		}
-		go func() {
-			gm := new(Goreman)
-			rpc.Register(gm)
-			server, err := net.Listen("tcp", "0.0.0.0:5555")
-			if err != nil {
-				return
-			}
-			for {
-				client, err := server.Accept()
-				if err != nil {
-					log.Println(err.Error())
-					continue
-				}
-				rpc.ServeConn(client)
-			}
-		}()
-
-		if flag.NArg() > 1 {
-			tmp := map[string]*proc_info {}
-			for _, v := range flag.Args()[1:] {
-				tmp[v] = procs[v]
-			}
-			procs = tmp
-		}
-		err = start_procs()
+		err = start()
 		break
 	case "version":
 		fmt.Println(version)

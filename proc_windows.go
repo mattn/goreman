@@ -40,7 +40,7 @@ func spawn_proc(proc string) bool {
 	return procs[proc].quit
 }
 
-func stop(proc string, quit bool) error {
+func stop_proc(proc string, quit bool) error {
 	if procs[proc].cmd == nil {
 		return nil
 	}
@@ -60,7 +60,7 @@ func stop(proc string, quit bool) error {
 	return nil
 }
 
-func start(proc string) error {
+func start_proc(proc string) error {
 	if procs[proc].cmd != nil {
 		return nil
 	}
@@ -73,18 +73,18 @@ func start(proc string) error {
 	return nil
 }
 
-func restart(proc string) error {
-	err := stop(proc, false)
+func restart_proc(proc string) error {
+	err := stop_proc(proc, false)
 	if err != nil {
 		return err
 	}
-	return start(proc)
+	return start_proc(proc)
 }
 
 func start_procs() error {
 	wg.Add(len(procs))
 	for proc := range procs {
-		start(proc)
+		start_proc(proc)
 	}
 	go func() {
 		sc := make(chan os.Signal, 10)
@@ -94,7 +94,7 @@ func start_procs() error {
 				if v == nil {
 					wg.Done()
 				} else {
-					stop(k, true)
+					stop_proc(k, true)
 				}
 			}
 			break
