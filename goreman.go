@@ -22,9 +22,8 @@ func usage() {
   goreman version                # Display Goreman version
 
 Options:
-  -f # Default: Procfile
-  -p # Default: 5555
 `)
+	flag.PrintDefaults()
 	os.Exit(0)
 }
 
