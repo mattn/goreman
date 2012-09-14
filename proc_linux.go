@@ -21,7 +21,7 @@ func spawn_proc(proc string) bool {
 	cmd.Stdout = logger
 	cmd.Stderr = logger
 
-	fmt.Fprintf(logger, "START", proc)
+	fmt.Fprintf(logger, "START")
 	err := cmd.Start()
 	if err != nil {
 		fmt.Fprintf(logger, "failed to execute external command. %s", err)
@@ -31,14 +31,14 @@ func spawn_proc(proc string) bool {
 	procs[proc].quit = true
 	procs[proc].cmd.Wait()
 	procs[proc].cmd = nil
-	fmt.Fprintf(logger, "QUIT", proc)
+	fmt.Fprintf(logger, "QUIT")
 
 	return procs[proc].quit
 }
 
 // stop specified proc.
 func stop_proc(proc string, quit bool) error {
-	if procs[proc].cmd != nil {
+	if procs[proc].cmd == nil {
 		return nil
 	}
 
@@ -96,5 +96,6 @@ func start_procs() error {
 			}
 		}
 	}
+	wg.Wait()
 	return nil
 }
