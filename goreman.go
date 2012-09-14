@@ -121,9 +121,6 @@ func main() {
 	case "check":
 		err = check()
 		break
-	case "export":
-		println("not implemented")
-		break
 	case "help":
 		usage()
 		break
