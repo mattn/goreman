@@ -46,6 +46,7 @@ func run(cmd, proc string) error {
 	if err != nil {
 		return err
 	}
+	defer client.Close()
 	var ret string
 	switch cmd {
 	case "start":

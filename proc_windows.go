@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -26,17 +25,17 @@ func spawn_proc(proc string) bool {
 		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
 	}
 
-	fmt.Fprintf(logger, "[%s] START", proc)
+	fmt.Fprintf(logger, "START")
 	err := cmd.Start()
 	if err != nil {
-		log.Fatal("failed to execute external command. %s", err)
+		fmt.Fprintf(logger, "failed to execute external command. %s", err)
 		return true
 	}
 	procs[proc].cmd = cmd
 	procs[proc].quit = true
 	procs[proc].cmd.Wait()
 	procs[proc].cmd = nil
-	fmt.Fprintf(logger, "[%s] QUIT", proc)
+	fmt.Fprintf(logger, "QUIT")
 
 	return procs[proc].quit
 }
@@ -91,17 +90,24 @@ func start_procs() error {
 	for proc := range procs {
 		start_proc(proc)
 	}
+	sc := make(chan os.Signal, 10)
+	done := false
 	go func() {
-		sc := make(chan os.Signal, 10)
-		signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
-		for _ = range sc {
-			for proc, _ := range procs {
+		wg.Wait()
+		done = true
+		sc <- syscall.SIGINT
+	}()
+	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+	<-sc
+	if !done {
+		for proc, p := range procs {
+			if p.cmd != nil {
 				stop_proc(proc, true)
+			} else {
 				wg.Done()
 			}
-			break
 		}
-	}()
+	}
 	wg.Wait()
 	return nil
 }
