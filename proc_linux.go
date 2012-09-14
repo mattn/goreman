@@ -12,51 +12,52 @@ import (
 
 var wg sync.WaitGroup
 
-func create_proc(proc string, cmdline string, logger *clogger) *proc_info {
-	cs := []string {"/bin/bash", "-c", cmdline}
+func spawn_proc(proc string) bool {
+	logger := create_logger(proc)
+
+	cs := []string {"/bin/bash", "-c", procs[proc].cmdline}
 	cmd := exec.Command(cs[0], cs[1:]...)
 	cmd.Stdin = nil
 	cmd.Stdout = logger
 	cmd.Stderr = logger
 
+	fmt.Fprintf(logger, "[%s] START", proc)
 	err := cmd.Start()
 	if err != nil {
 		log.Fatal("failed to execute external command. %s", err)
-		return nil
+		return true
 	}
-	return &proc_info { proc, cmdline, true, cmd, logger }
+	procs[proc].cmd = cmd
+	procs[proc].quit = true
+	procs[proc].cmd.Wait()
+	procs[proc].cmd = nil
+	fmt.Fprintf(logger, "[%s] QUIT", proc)
+
+	return procs[proc].quit
 }
 
 func stop(proc string, quit bool) error {
-	if procs[proc] == nil {
+	if procs[proc].cmd != nil {
 		return nil
 	}
 
-	procs[proc].q = quit
-	pid := procs[proc].c.Process.Pid
+	procs[proc].quit = quit
+	pid := procs[proc].cmd.Process.Pid
 
 	syscall.Kill(pid, syscall.SIGINT)
 	return nil
 }
 
 func start(proc string) error {
-	procs = map[string]*proc_info {}
-	if procs[proc] != nil {
+	if procs[proc].cmd != nil {
 		return nil
 	}
 
-	go func(k string, v string) {
-		l := create_logger(k)
-		fmt.Fprintf(l, "[%s] START", k)
-		procs[k] = create_proc(k, v, l)
-		procs[k].c.Wait()
-		q := procs[k].q
-		procs[k] = nil
-		fmt.Fprintf(l, "[%s] QUIT", k)
-		if q {
+	go func() {
+		if spawn_proc(proc) {
 			wg.Done()
 		}
-	}(proc, entry[proc])
+	}()
 	return nil
 }
 
@@ -68,20 +69,11 @@ func restart(proc string) error {
 	return start(proc)
 }
 
-func start_procs(proc []string) error {
-	if len(proc) != 0 {
-		tmp := map[string]string {}
-		for _, v := range proc {
-			tmp[v] = entry[v]
-		}
-		entry = tmp
+func start_procs() error {
+	wg.Add(len(procs))
+	for proc := range procs {
+		start(proc)
 	}
-
-	wg.Add(len(entry))
-	for k := range entry {
-		start(k)
-	}
-
 	go func() {
 		sc := make(chan os.Signal, 10)
 		signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
@@ -96,7 +88,6 @@ func start_procs(proc []string) error {
 			break
 		}
 	}()
-
 	wg.Wait()
 	return nil
 }

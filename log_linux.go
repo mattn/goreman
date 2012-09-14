@@ -8,8 +8,8 @@ import (
 )
 
 type clogger struct {
-	i int
-	p string
+	idx int
+	proc string
 }
 var colors = []string {
 	term.FgGreen,
@@ -31,7 +31,7 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 			line = line[0:len(line)-2]
 		}
 		if line != "" {
-			log.Printf("[%s] %s", term.Color(l.p, colors[l.i]), term.Color(line, colors[l.i]))
+			log.Printf("[%s] %s", term.Color(l.proc, colors[l.idx]), term.Color(line, colors[l.idx]))
 		}
 	}
 	n = len(p)

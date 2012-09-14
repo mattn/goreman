@@ -76,19 +76,16 @@ func run(cmd, proc string) error {
 	return errors.New("Unknown command")
 }
 
-var entry map[string]string
-
 type proc_info struct {
-	p string
-	l string
-	q bool
-	c *exec.Cmd
-	w *clogger
+	proc string
+	cmdline string
+	quit bool
+	cmd *exec.Cmd
 }
 var procs map[string]*proc_info
 
-func readEntry() error {
-	entry = map[string]string {}
+func readProcfile() error {
+	procs = map[string]*proc_info {}
 	content, err := ioutil.ReadFile(*procfile)
 	if err != nil {
 		return err
@@ -96,10 +93,11 @@ func readEntry() error {
 	for _, line := range strings.Split(string(content), "\n") {
 		tokens := strings.SplitN(line, ":", 2)
 		if len(tokens) == 2 && tokens[0][0] != '#' {
-			entry[strings.TrimSpace(tokens[0])] = strings.TrimSpace(tokens[1])
+			k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
+			procs[k] = &proc_info{k, v, false, nil}
 		}
 	}
-	if len(entry) == 0 {
+	if len(procs) == 0 {
 		return errors.New("No valid entry")
 	}
 	return nil
@@ -118,13 +116,13 @@ func main() {
 	var err error
 	switch cmd {
 	case "check":
-		err = readEntry()
+		err = readProcfile()
 		if err != nil {
 			break
 		}
-		keys := make([]string, len(entry))
+		keys := make([]string, len(procs))
 		i := 0
-		for k := range entry {
+		for k := range procs {
 			keys[i] = k
 			i++
 		}
@@ -144,7 +142,7 @@ func main() {
 		err = run(flag.Args()[1], flag.Args()[2])
 		break
 	case "start":
-		err = readEntry()
+		err = readProcfile()
 		if err != nil {
 			break
 		}
@@ -164,7 +162,15 @@ func main() {
 				rpc.ServeConn(client)
 			}
 		}()
-		err = start_procs(flag.Args()[1:])
+
+		if flag.NArg() > 1 {
+			tmp := map[string]*proc_info {}
+			for _, v := range flag.Args()[1:] {
+				tmp[v] = procs[v]
+			}
+			procs = tmp
+		}
+		err = start_procs()
 		break
 	case "version":
 		fmt.Println(version)

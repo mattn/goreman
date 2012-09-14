@@ -9,13 +9,13 @@ import (
 )
 
 type clogger struct {
-	i int
-	p string
+	idx int
+	proc string
 }
 
 var mutex = new(sync.Mutex)
 var cerr = doscolor.NewWrapper(os.Stderr)
-var elog = log.New(cerr, "", log.LstdFlags)
+var elog *log.Logger
 var colors = []doscolor.Color {
 	doscolor.Green | doscolor.Bright,
 	doscolor.Cyan | doscolor.Bright,
@@ -34,8 +34,8 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 			line = line[0:len(line)-2]
 		}
 		if line != "" {
-			cerr.Set(colors[l.i])
-			elog.Printf("[%s] %s", l.p, line)
+			cerr.Set(colors[l.idx])
+			elog.Printf("[%s] %s", l.proc, line)
 			cerr.Restore()
 		}
 	}
@@ -44,6 +44,11 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 }
 
 func create_logger(proc string) *clogger {
+	if elog == nil {
+		elog = log.New(cerr, "", log.LstdFlags)
+		cerr.Save()
+	}
+
 	l := &clogger {ci, proc}
 	ci++
 	if ci >= len(colors) {
