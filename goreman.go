@@ -35,6 +35,7 @@ type proc_info struct {
 }
 var procs map[string]*proc_info
 
+var procfile = flag.String("f", "Procfile", "proc file")
 func read_procfile() error {
 	procs = map[string]*proc_info {}
 	content, err := ioutil.ReadFile(*procfile)
@@ -54,7 +55,20 @@ func read_procfile() error {
 	return nil
 }
 
-var procfile = flag.String("f", "Procfile", "proc file")
+func read_env() error {
+	content, err := ioutil.ReadFile(".env")
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(string(content), "\n") {
+		tokens := strings.SplitN(line, "=", 2)
+		if len(tokens) == 2 && tokens[0][0] != '#' {
+			k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
+			os.Setenv(k, v)
+		}
+	}
+	return nil
+}
 
 func check() error {
 	err := read_procfile()
@@ -83,6 +97,10 @@ func start() error {
 			tmp[v] = procs[v]
 		}
 		procs = tmp
+	}
+	err = read_env()
+	if err != nil {
+		return err
 	}
 	go start_server()
 	return start_procs()
