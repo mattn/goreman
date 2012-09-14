@@ -12,6 +12,7 @@ import (
 
 var wg sync.WaitGroup
 
+// spawn command that specified as proc.
 func spawn_proc(proc string) bool {
 	logger := create_logger(proc)
 
@@ -36,6 +37,7 @@ func spawn_proc(proc string) bool {
 	return procs[proc].quit
 }
 
+// stop specified proc.
 func stop_proc(proc string, quit bool) error {
 	if procs[proc].cmd != nil {
 		return nil
@@ -48,6 +50,7 @@ func stop_proc(proc string, quit bool) error {
 	return nil
 }
 
+// start specified proc. if proc is started already, return nil.
 func start_proc(proc string) error {
 	if procs[proc].cmd != nil {
 		return nil
@@ -61,6 +64,7 @@ func start_proc(proc string) error {
 	return nil
 }
 
+// restart specified proc.
 func restart_proc(proc string) error {
 	err := stop_proc(proc, false)
 	if err != nil {
@@ -69,6 +73,7 @@ func restart_proc(proc string) error {
 	return start_proc(proc)
 }
 
+// spawn all procs.
 func start_procs() error {
 	wg.Add(len(procs))
 	for proc := range procs {

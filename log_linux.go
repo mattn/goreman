@@ -23,6 +23,7 @@ var ci int
 
 var mutex = new(sync.Mutex)
 
+// write handler of logger.
 func (l *clogger) Write(p []byte) (n int, err error) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -38,6 +39,7 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 	return
 }
 
+// create logger instance.
 func create_logger(proc string) *clogger {
 	l := &clogger {ci, proc}
 	ci++

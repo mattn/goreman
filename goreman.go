@@ -27,15 +27,21 @@ Options:
 	os.Exit(0)
 }
 
+// -- process information structure.
 type proc_info struct {
 	proc string
 	cmdline string
 	quit bool
 	cmd *exec.Cmd
 }
+
+// process informations named with proc.
 var procs map[string]*proc_info
 
+// filename of Procfile.
 var procfile = flag.String("f", "Procfile", "proc file")
+
+// read Procfile and parse it.
 func read_procfile() error {
 	procs = map[string]*proc_info {}
 	content, err := ioutil.ReadFile(*procfile)
@@ -55,6 +61,7 @@ func read_procfile() error {
 	return nil
 }
 
+// read .env file and set environments.
 func read_env() error {
 	content, err := ioutil.ReadFile(".env")
 	if err != nil {
@@ -70,8 +77,10 @@ func read_env() error {
 	return nil
 }
 
+// rpc port number.
 var port = flag.Uint("p", 5555, "port")
 
+// command: check. show Procfile entries.
 func check() error {
 	err := read_procfile()
 	if err != nil {
@@ -88,6 +97,7 @@ func check() error {
 	return nil
 }
 
+// command: start. spawn procs.
 func start() error {
 	err := read_procfile()
 	if err != nil {

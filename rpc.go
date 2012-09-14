@@ -10,6 +10,7 @@ import (
 
 type Goreman int
 
+// rpc: start
 func (r *Goreman) Start(proc string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -19,6 +20,7 @@ func (r *Goreman) Start(proc string, ret *string) (err error) {
 	return start_proc(proc)
 }
 
+// rpc: stop
 func (r *Goreman) Stop(proc string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -28,6 +30,7 @@ func (r *Goreman) Stop(proc string, ret *string) (err error) {
 	return stop_proc(proc, false)
 }
 
+// rpc: restart
 func (r *Goreman) Restart(proc string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -37,6 +40,7 @@ func (r *Goreman) Restart(proc string, ret *string) (err error) {
 	return restart_proc(proc)
 }
 
+// command: run.
 func run(cmd, proc string) error {
 	client, err := rpc.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
 	if err != nil {
@@ -54,6 +58,7 @@ func run(cmd, proc string) error {
 	return errors.New("Unknown command")
 }
 
+// start rpc server.
 func start_server() error {
 	gm := new(Goreman)
 	rpc.Register(gm)
