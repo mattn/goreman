@@ -40,7 +40,7 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 }
 
 // create logger instance.
-func create_logger(proc string) *clogger {
+func createLogger(proc string) *clogger {
 	l := &clogger {ci, proc}
 	ci++
 	if ci >= len(colors) {

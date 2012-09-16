@@ -45,7 +45,7 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 }
 
 // create logger instance.
-func create_logger(proc string) *clogger {
+func createLogger(proc string) *clogger {
 	if elog == nil {
 		elog = log.New(cerr, "", log.LstdFlags)
 		cerr.Save()

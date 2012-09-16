@@ -28,7 +28,7 @@ Options:
 }
 
 // -- process information structure.
-type proc_info struct {
+type procInfo struct {
 	proc string
 	cmdline string
 	quit bool
@@ -36,14 +36,14 @@ type proc_info struct {
 }
 
 // process informations named with proc.
-var procs map[string]*proc_info
+var procs map[string]*procInfo
 
 // filename of Procfile.
 var procfile = flag.String("f", "Procfile", "proc file")
 
 // read Procfile and parse it.
-func read_procfile() error {
-	procs = map[string]*proc_info {}
+func readProcfile() error {
+	procs = map[string]*procInfo {}
 	content, err := ioutil.ReadFile(*procfile)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func read_procfile() error {
 		tokens := strings.SplitN(line, ":", 2)
 		if len(tokens) == 2 && tokens[0][0] != '#' {
 			k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
-			procs[k] = &proc_info{k, v, false, nil}
+			procs[k] = &procInfo{k, v, false, nil}
 		}
 	}
 	if len(procs) == 0 {
@@ -62,7 +62,7 @@ func read_procfile() error {
 }
 
 // read .env file and set environments.
-func read_env() error {
+func readEnvfile() error {
 	content, err := ioutil.ReadFile(".env")
 	if err != nil {
 		return err
@@ -82,7 +82,7 @@ var port = flag.Uint("p", 5555, "port")
 
 // command: check. show Procfile entries.
 func check() error {
-	err := read_procfile()
+	err := readProcfile()
 	if err != nil {
 		return err
 	}
@@ -99,23 +99,23 @@ func check() error {
 
 // command: start. spawn procs.
 func start() error {
-	err := read_procfile()
+	err := readProcfile()
 	if err != nil {
 		return err
 	}
 	if flag.NArg() > 1 {
-		tmp := map[string]*proc_info {}
+		tmp := map[string]*procInfo {}
 		for _, v := range flag.Args()[1:] {
 			tmp[v] = procs[v]
 		}
 		procs = tmp
 	}
-	err = read_env()
+	err = readEnvfile()
 	if err != nil {
 		return err
 	}
-	go start_server()
-	return start_procs()
+	go startServer()
+	return startProcs()
 }
 
 func main() {

@@ -17,7 +17,7 @@ func (r *Goreman) Start(proc string, ret *string) (err error) {
 			err = r.(error)
 		}
 	}()
-	return start_proc(proc)
+	return startProc(proc)
 }
 
 // rpc: stop
@@ -27,7 +27,7 @@ func (r *Goreman) Stop(proc string, ret *string) (err error) {
 			err = r.(error)
 		}
 	}()
-	return stop_proc(proc, false)
+	return stopProc(proc, false)
 }
 
 // rpc: restart
@@ -37,7 +37,7 @@ func (r *Goreman) Restart(proc string, ret *string) (err error) {
 			err = r.(error)
 		}
 	}()
-	return restart_proc(proc)
+	return restartProc(proc)
 }
 
 // command: run.
@@ -60,7 +60,7 @@ func run(cmd, proc string) error {
 }
 
 // start rpc server.
-func start_server() error {
+func startServer() error {
 	gm := new(Goreman)
 	rpc.Register(gm)
 	server, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))

@@ -12,8 +12,8 @@ import (
 var wg sync.WaitGroup
 
 // spawn command that specified as proc.
-func spawn_proc(proc string) bool {
-	logger := create_logger(proc)
+func spawnProc(proc string) bool {
+	logger := createLogger(proc)
 
 	cs := []string {"/bin/bash", "-c", procs[proc].cmdline}
 	cmd := exec.Command(cs[0], cs[1:]...)
@@ -37,7 +37,7 @@ func spawn_proc(proc string) bool {
 }
 
 // stop specified proc.
-func stop_proc(proc string, quit bool) error {
+func stopProc(proc string, quit bool) error {
 	if procs[proc].cmd == nil {
 		return nil
 	}
@@ -50,13 +50,13 @@ func stop_proc(proc string, quit bool) error {
 }
 
 // start specified proc. if proc is started already, return nil.
-func start_proc(proc string) error {
+func startProc(proc string) error {
 	if procs[proc].cmd != nil {
 		return nil
 	}
 
 	go func() {
-		if spawn_proc(proc) {
+		if spawnProc(proc) {
 			wg.Done()
 		}
 	}()
@@ -64,19 +64,19 @@ func start_proc(proc string) error {
 }
 
 // restart specified proc.
-func restart_proc(proc string) error {
-	err := stop_proc(proc, false)
+func restartProc(proc string) error {
+	err := stopProc(proc, false)
 	if err != nil {
 		return err
 	}
-	return start_proc(proc)
+	return startProc(proc)
 }
 
 // spawn all procs.
-func start_procs() error {
+func startProcs() error {
 	wg.Add(len(procs))
 	for proc := range procs {
-		start_proc(proc)
+		startProc(proc)
 	}
 	sc := make(chan os.Signal, 10)
 	done := false
@@ -90,7 +90,7 @@ func start_procs() error {
 	if !done {
 		for proc, p := range procs {
 			if p.cmd != nil {
-				stop_proc(proc, true)
+				stopProc(proc, true)
 			} else {
 				wg.Done()
 			}
