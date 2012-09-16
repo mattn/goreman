@@ -8,10 +8,11 @@ import (
 )
 
 type clogger struct {
-	idx int
+	idx  int
 	proc string
 }
-var colors = []string {
+
+var colors = []string{
 	term.FgGreen,
 	term.FgCyan,
 	term.FgMagenta,
@@ -29,7 +30,7 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 	defer mutex.Unlock()
 	for _, line := range strings.Split(string(p), "\n") {
 		if len(line) > 0 && line[len(line)-1] == '\n' {
-			line = line[0:len(line)-2]
+			line = line[0 : len(line)-2]
 		}
 		if line != "" {
 			log.Printf("[%s] %s", term.Color(l.proc, colors[l.idx]), term.Color(line, colors[l.idx]))
@@ -41,7 +42,7 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 
 // create logger instance.
 func createLogger(proc string) *clogger {
-	l := &clogger {ci, proc}
+	l := &clogger{ci, proc}
 	ci++
 	if ci >= len(colors) {
 		ci = 0

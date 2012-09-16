@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"errors"
-	//"log"
+	"fmt"
 	"net"
 	"net/rpc"
 )

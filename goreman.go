@@ -1,12 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
-	"errors"
-	"os/exec"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 )
@@ -29,10 +29,10 @@ Options:
 
 // -- process information structure.
 type procInfo struct {
-	proc string
+	proc    string
 	cmdline string
-	quit bool
-	cmd *exec.Cmd
+	quit    bool
+	cmd     *exec.Cmd
 }
 
 // process informations named with proc.
@@ -43,7 +43,7 @@ var procfile = flag.String("f", "Procfile", "proc file")
 
 // read Procfile and parse it.
 func readProcfile() error {
-	procs = map[string]*procInfo {}
+	procs = map[string]*procInfo{}
 	content, err := ioutil.ReadFile(*procfile)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func start() error {
 		return err
 	}
 	if flag.NArg() > 1 {
-		tmp := map[string]*procInfo {}
+		tmp := map[string]*procInfo{}
 		for _, v := range flag.Args()[1:] {
 			tmp[v] = procs[v]
 		}
