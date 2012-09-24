@@ -61,10 +61,13 @@ func readProcfile() error {
 	return nil
 }
 
-// read .env file and set environments.
+// read .env file (if exists) and set environments.
 func readEnvfile() error {
 	content, err := ioutil.ReadFile(".env")
 	if err != nil {
+		if os.IsNotExist(err){
+			return nil
+		}
 		return err
 	}
 	for _, line := range strings.Split(string(content), "\n") {
