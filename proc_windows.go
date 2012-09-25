@@ -21,10 +21,6 @@ func spawnProc(proc string) bool {
 	cmd.Stdout = logger
 	cmd.Stderr = logger
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP,
-	}
-
 	fmt.Fprintf(logger, "START")
 	err := cmd.Start()
 	if err != nil {
@@ -45,19 +41,8 @@ func stopProc(proc string, quit bool) error {
 	if procs[proc].cmd == nil {
 		return nil
 	}
-
-	dll, err := syscall.LoadDLL("kernel32.dll")
-	if err != nil {
-		return err
-	}
-	f, err := dll.FindProc("GenerateConsoleCtrlEvent")
-	if err != nil {
-		return err
-	}
-
 	procs[proc].quit = quit
-	pid := procs[proc].cmd.Process.Pid
-	f.Call(syscall.CTRL_C_EVENT, uintptr(pid))
+	procs[proc].cmd.Process.Kill()
 	return nil
 }
 
