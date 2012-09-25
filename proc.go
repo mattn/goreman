@@ -1,3 +1,5 @@
+// +build !windows
+
 package main
 
 import (
@@ -15,7 +17,7 @@ var wg sync.WaitGroup
 func spawnProc(proc string) bool {
 	logger := createLogger(proc)
 
-	cs := []string {"/bin/bash", "-c", procs[proc].cmdline}
+	cs := []string{"/bin/bash", "-c", procs[proc].cmdline}
 	cmd := exec.Command(cs[0], cs[1:]...)
 	cmd.Stdin = nil
 	cmd.Stdout = logger
