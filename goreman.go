@@ -65,7 +65,7 @@ func readProcfile() error {
 func readEnvfile() error {
 	content, err := ioutil.ReadFile(".env")
 	if err != nil {
-		if os.IsNotExist(err){
+		if os.IsNotExist(err) {
 			return nil
 		}
 		return err
