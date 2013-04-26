@@ -76,9 +76,10 @@ func restartProc(proc string) error {
 
 // spawn all procs.
 func startProcs() error {
-	wg.Add(len(procs))
 	for proc := range procs {
-		startProc(proc)
+		if startProc(proc) == nil {
+			wg.Add(1)
+		}
 	}
 	sc := make(chan os.Signal, 10)
 	done := false
