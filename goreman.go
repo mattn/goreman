@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -80,8 +81,20 @@ func readEnvfile() error {
 	return nil
 }
 
+// default port
+func defaultPort() uint {
+	s := os.Getenv("GOREMAN_RPC_PORT")
+	if s != "" {
+		i, err := strconv.Atoi(s)
+		if err == nil {
+			return uint(i)
+		}
+	}
+	return 5555
+}
+
 // rpc port number.
-var port = flag.Uint("p", 5555, "port")
+var port = flag.Uint("p", defaultPort(), "port")
 
 // command: check. show Procfile entries.
 func check() error {
