@@ -1,42 +1,13 @@
-// +build !windows
-
 package main
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"sync"
 	"syscall"
 )
 
 var wg sync.WaitGroup
-
-// spawn command that specified as proc.
-func spawnProc(proc string) bool {
-	logger := createLogger(proc)
-
-	cs := []string{"/bin/bash", "-c", procs[proc].cmdline}
-	cmd := exec.Command(cs[0], cs[1:]...)
-	cmd.Stdin = nil
-	cmd.Stdout = logger
-	cmd.Stderr = logger
-
-	fmt.Fprintf(logger, "START")
-	err := cmd.Start()
-	if err != nil {
-		fmt.Fprintf(logger, "failed to execute external command. %s", err)
-		return true
-	}
-	procs[proc].cmd = cmd
-	procs[proc].quit = true
-	procs[proc].cmd.Wait()
-	procs[proc].cmd = nil
-	fmt.Fprintf(logger, "QUIT")
-
-	return procs[proc].quit
-}
 
 // stop specified proc.
 func stopProc(proc string, quit bool) error {
@@ -45,10 +16,16 @@ func stopProc(proc string, quit bool) error {
 	}
 
 	procs[proc].quit = quit
-	pid := procs[proc].cmd.Process.Pid
+	return procs[proc].cmd.Process.Signal(syscall.SIGINT)
+}
 
-	syscall.Kill(pid, syscall.SIGINT)
-	return nil
+func done() {
+	func() {
+		defer func() {
+			recover()
+		}()
+		wg.Done()
+	}()
 }
 
 // start specified proc. if proc is started already, return nil.
@@ -59,7 +36,7 @@ func startProc(proc string) error {
 
 	go func() {
 		if spawnProc(proc) {
-			wg.Done()
+			done()
 		}
 	}()
 	return nil
@@ -76,26 +53,25 @@ func restartProc(proc string) error {
 
 // spawn all procs.
 func startProcs() error {
+	wg.Add(len(procs))
 	for proc := range procs {
-		if startProc(proc) == nil {
-			wg.Add(1)
-		}
+		startProc(proc)
 	}
 	sc := make(chan os.Signal, 10)
-	done := false
+	state := true
 	go func() {
 		wg.Wait()
-		done = true
+		state = false
 		sc <- syscall.SIGINT
 	}()
 	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	<-sc
-	if !done {
+	if state {
 		for proc, p := range procs {
 			if p.cmd != nil {
 				stopProc(proc, true)
 			} else {
-				wg.Done()
+				done()
 			}
 		}
 	}
