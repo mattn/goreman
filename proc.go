@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/signal"
 	"sync"
@@ -16,7 +17,12 @@ func stopProc(proc string, quit bool) error {
 	}
 
 	procs[proc].quit = quit
-	return procs[proc].cmd.Process.Signal(syscall.SIGINT)
+	err := procs[proc].cmd.Process.Signal(syscall.SIGINT)
+	if err != nil {
+		return err
+	}
+	_, err = procs[proc].cmd.Process.Wait()
+	return err
 }
 
 func done() {
@@ -48,7 +54,12 @@ func restartProc(proc string) error {
 	if err != nil {
 		return err
 	}
-	return startProc(proc)
+	println("spawn")
+	if !spawnProc(proc) {
+		return errors.New("Failed to restart")
+	}
+	println("spawned")
+	return nil
 }
 
 // spawn all procs.
@@ -66,15 +77,11 @@ func startProcs() error {
 	}()
 	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	<-sc
-	if state {
-		for proc, p := range procs {
-			if p.cmd != nil {
-				stopProc(proc, true)
-			} else {
-				done()
-			}
+	for proc, p := range procs {
+		if p.cmd != nil {
+			stopProc(proc, true)
 		}
+		done()
 	}
-	wg.Wait()
 	return nil
 }
