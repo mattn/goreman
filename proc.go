@@ -1,11 +1,11 @@
 package main
 
 import (
-	"errors"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 var wg sync.WaitGroup
@@ -22,6 +22,9 @@ func stopProc(proc string, quit bool) error {
 		return err
 	}
 	_, err = procs[proc].cmd.Process.Wait()
+	if err == nil {
+		procs[proc].cmd = nil
+	}
 	return err
 }
 
@@ -50,16 +53,9 @@ func startProc(proc string) error {
 
 // restart specified proc.
 func restartProc(proc string) error {
-	err := stopProc(proc, false)
-	if err != nil {
-		return err
-	}
-	println("spawn")
-	if !spawnProc(proc) {
-		return errors.New("Failed to restart")
-	}
-	println("spawned")
-	return nil
+	stopProc(proc, false)
+	time.Sleep(1 * time.Second)
+	return startProc(proc)
 }
 
 // spawn all procs.
