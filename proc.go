@@ -11,7 +11,7 @@ import (
 
 var wg sync.WaitGroup
 
-func done() {
+func terminated() {
 	func() {
 		defer func() {
 			recover()
@@ -30,7 +30,7 @@ func stopProc(proc string, quit bool) error {
 	}
 
 	procs[proc].quit = quit
-	err := procs[proc].cmd.Process.Signal(syscall.SIGINT)
+	err := terminateProc(proc);
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func startProc(proc string) error {
 
 	go func() {
 		if spawnProc(proc) {
-			done()
+			terminated()
 		}
 	}()
 	return nil
@@ -87,7 +87,7 @@ func startProcs() error {
 		if p.cmd != nil {
 			stopProc(proc, true)
 		}
-		done()
+		terminated()
 	}
 	return nil
 }

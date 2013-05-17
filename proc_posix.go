@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os/exec"
+	"syscall"
 )
 
 // spawn command that specified as proc.
@@ -30,4 +31,8 @@ func spawnProc(proc string) bool {
 	fmt.Fprintf(logger, "QUIT")
 
 	return procs[proc].quit
+}
+
+func terminateProc(proc string) error {
+	return procs[proc].cmd.Process.Signal(syscall.SIGINT)
 }

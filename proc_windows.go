@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os/exec"
+	"syscall"
 )
 
 // spawn command that specified as proc.
@@ -28,4 +29,18 @@ func spawnProc(proc string) bool {
 	fmt.Fprintf(logger, "QUIT")
 
 	return procs[proc].quit
+}
+
+func terminateProc(proc string) error {
+	dll, err := syscall.LoadDLL("kernel32.dll")
+	if err != nil {
+		return err
+	}
+	f, err := dll.FindProc("GenerateConsoleCtrlEvent")
+	if err != nil {
+		return err
+	}
+	pid := procs[proc].cmd.Process.Pid
+	f.Call(syscall.CTRL_C_EVENT, uintptr(pid))
+	return nil
 }
