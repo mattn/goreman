@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/signal"
 	"sync"
@@ -10,8 +11,20 @@ import (
 
 var wg sync.WaitGroup
 
+func done() {
+	func() {
+		defer func() {
+			recover()
+		}()
+		wg.Done()
+	}()
+}
+
 // stop specified proc.
 func stopProc(proc string, quit bool) error {
+	if _, ok := procs[proc]; !ok {
+		return errors.New("Unknown proc: " + proc)
+	}
 	if procs[proc].cmd == nil {
 		return nil
 	}
@@ -28,17 +41,11 @@ func stopProc(proc string, quit bool) error {
 	return err
 }
 
-func done() {
-	func() {
-		defer func() {
-			recover()
-		}()
-		wg.Done()
-	}()
-}
-
 // start specified proc. if proc is started already, return nil.
 func startProc(proc string) error {
+	if _, ok := procs[proc]; !ok {
+		return errors.New("Unknown proc: " + proc)
+	}
 	if procs[proc].cmd != nil {
 		return nil
 	}
@@ -53,6 +60,9 @@ func startProc(proc string) error {
 
 // restart specified proc.
 func restartProc(proc string) error {
+	if _, ok := procs[proc]; !ok {
+		return errors.New("Unknown proc: " + proc)
+	}
 	stopProc(proc, false)
 	time.Sleep(1 * time.Second)
 	return startProc(proc)
