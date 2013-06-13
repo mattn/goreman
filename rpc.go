@@ -39,6 +39,20 @@ func (r *Goreman) Restart(proc string, ret *string) (err error) {
 	return restartProc(proc)
 }
 
+// rpc: list
+func (r *Goreman) List(empty string, ret *string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	*ret = ""
+	for proc := range procs {
+		*ret += proc + "\n"
+	}
+	return err
+}
+
 // command: run.
 func run(cmd, proc string) error {
 	client, err := rpc.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
@@ -54,6 +68,10 @@ func run(cmd, proc string) error {
 		return client.Call("Goreman.Stop", proc, &ret)
 	case "restart":
 		return client.Call("Goreman.Restart", proc, &ret)
+	case "list":
+		err := client.Call("Goreman.List", "", &ret)
+		fmt.Print(ret)
+		return err
 	}
 	return errors.New("Unknown command")
 }

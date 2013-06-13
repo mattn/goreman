@@ -18,7 +18,7 @@ func usage() {
 	fmt.Fprint(os.Stderr, `Tasks:
   goreman check                  # Show entries in Procfile
   goreman help [TASK]            # Show this help
-  goreman run COMMAND [ARGS...]  # Run a command (start/stop/restart)
+  goreman run COMMAND [ARGS...]  # Run a command (start/stop/restart/list)
   goreman start [PROCESS]        # Start the application
   goreman version                # Display Goreman version
 
@@ -151,11 +151,15 @@ func main() {
 		usage()
 		break
 	case "run":
-		if flag.NArg() != 3 {
+		if flag.NArg() == 3 {
+			cmd, proc := flag.Args()[1], flag.Args()[2]
+			err = run(cmd, proc)
+		} else if flag.NArg() == 2 && flag.Args()[1] == "list" {
+			cmd := flag.Args()[1]
+			err = run(cmd, "")
+		} else {
 			usage()
 		}
-		cmd, proc := flag.Args()[1], flag.Args()[2]
-		err = run(cmd, proc)
 		break
 	case "start":
 		err = start()
