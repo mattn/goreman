@@ -87,7 +87,6 @@ func startServer() error {
 	for {
 		client, err := server.Accept()
 		if err != nil {
-			//log.Println(err.Error())
 			continue
 		}
 		rpc.ServeConn(client)
