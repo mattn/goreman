@@ -1,9 +1,7 @@
-// +build !windows
-
 package main
 
 import (
-	"github.com/mewkiz/pkg/term"
+	"github.com/daviddengcn/go-colortext"
 	"log"
 	"strings"
 	"sync"
@@ -14,13 +12,13 @@ type clogger struct {
 	proc string
 }
 
-var colors = []string{
-	term.FgGreen,
-	term.FgCyan,
-	term.FgMagenta,
-	term.FgYellow,
-	term.FgBlue,
-	term.FgRed,
+var colors = []ct.Color{
+	ct.Green,
+	ct.Cyan,
+	ct.Magenta,
+	ct.Yellow,
+	ct.Blue,
+	ct.Red,
 }
 var ci int
 
@@ -35,9 +33,11 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 			line = line[0 : len(line)-2]
 		}
 		if line != "" {
-			log.Printf("[%s] %s", term.Color(l.proc, colors[l.idx]), term.Color(line, colors[l.idx]))
+			ct.ChangeColor(colors[l.idx], true, ct.None, true)
+			log.Printf("[%s] %s", l.proc, line)
 		}
 	}
+	ct.ResetColor()
 	n = len(p)
 	return
 }
