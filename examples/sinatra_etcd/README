@@ -1,0 +1,9 @@
+1) start etcd
+2) fill up app name space (copy & paste):
+
+curl http://127.0.0.1:4001/v1/keys/app/db -d value="newdb"
+curl http://127.0.0.1:4001/v1/keys/app/cache -d value="new cache"
+curl http://127.0.0.1:4001/v1/keys/app/queue -d value="dat queue"
+
+3) goreman start
+4) open http://localhost:4567/ and http://localhost:4567/env to inspect env vars

@@ -1,0 +1,2 @@
+etcd: app
+web1: ruby web.rb

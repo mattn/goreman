@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/coreos/go-etcd/etcd"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -53,7 +54,11 @@ func readProcfile() error {
 		tokens := strings.SplitN(line, ":", 2)
 		if len(tokens) == 2 && tokens[0][0] != '#' {
 			k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
-			procs[k] = &procInfo{k, v, false, nil}
+			if k == "etcd" {
+				createEnvFromEtcd(v)
+			} else {
+				procs[k] = &procInfo{k, v, false, nil}
+			}
 		}
 	}
 	if len(procs) == 0 {
@@ -77,6 +82,29 @@ func readEnvfile() error {
 			k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
 			os.Setenv(k, v)
 		}
+	}
+	return nil
+}
+
+// create env map from etcd url
+// Procfile MUST contain a line with the following syntax:
+// etcd: http://etcd_url/v1/keys/<appname>
+// - appname is a keyspace
+// - doesnt needs to match the app name on any of Procfile's directives
+// - this keyspace and its keys returns the expected pairs when queried, eg: curl -L http://127.0.0.1:4001/v1/keys/foo/
+
+var etcdClient = etcd.NewClient()
+
+func createEnvFromEtcd(app string) error {
+	res, err := etcdClient.Get(app)
+	if err != nil {
+		return err
+	}
+	for _, n := range res {
+		key := strings.Split(n.Key, "/")
+		k, v := strings.ToUpper(key[len(key)-1]), n.Value
+		fmt.Println("creating env var:", k)
+		os.Setenv(k, v)
 	}
 	return nil
 }
