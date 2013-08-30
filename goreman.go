@@ -154,7 +154,7 @@ func main() {
 		if flag.NArg() == 3 {
 			cmd, proc := flag.Args()[1], flag.Args()[2]
 			err = run(cmd, proc)
-		} else if flag.NArg() == 2 && flag.Args()[1] == "list" {
+		} else if flag.NArg() == 2 {
 			cmd := flag.Args()[1]
 			err = run(cmd, "")
 		} else {
@@ -172,7 +172,7 @@ func main() {
 	}
 
 	if err != nil {
-		println(err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 }

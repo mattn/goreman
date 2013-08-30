@@ -53,6 +53,24 @@ func (r *Goreman) List(empty string, ret *string) (err error) {
 	return err
 }
 
+// rpc: dump
+func (r *Goreman) Dump(empty string, ret *string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	*ret = ""
+	for proc := range procs {
+		if procs[proc].quit {
+			*ret += proc + "\n"
+		} else {
+			*ret += "#" + proc + "\n"
+		}
+	}
+	return err
+}
+
 // command: run.
 func run(cmd, proc string) error {
 	client, err := rpc.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
@@ -70,6 +88,10 @@ func run(cmd, proc string) error {
 		return client.Call("Goreman.Restart", proc, &ret)
 	case "list":
 		err := client.Call("Goreman.List", "", &ret)
+		fmt.Print(ret)
+		return err
+	case "dump":
+		err := client.Call("Goreman.Dump", "", &ret)
 		fmt.Print(ret)
 		return err
 	}
