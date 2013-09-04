@@ -1,10 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"github.com/daviddengcn/go-colortext"
-	"log"
 	"strings"
 	"sync"
+	"time"
 )
 
 type clogger struct {
@@ -33,11 +34,14 @@ func (l *clogger) Write(p []byte) (n int, err error) {
 			line = line[0 : len(line)-2]
 		}
 		if line != "" {
-			ct.ChangeColor(colors[l.idx], true, ct.None, true)
-			log.Printf("[%s] %s", l.proc, line)
+			ct.ChangeColor(colors[l.idx], false, ct.None, false)
+			now := time.Now().Format("15:04:05")
+			format := fmt.Sprintf("%%s %%%ds | ", maxProcNameLength)
+			fmt.Printf(format, now, l.proc)
+			ct.ResetColor()
+			fmt.Println(line)
 		}
 	}
-	ct.ResetColor()
 	n = len(p)
 	return
 }
