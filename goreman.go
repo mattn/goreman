@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/joho/godotenv"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -66,25 +67,6 @@ func readProcfile() error {
 	return nil
 }
 
-// read .env file (if exists) and set environments.
-func readEnvfile() error {
-	content, err := ioutil.ReadFile(".env")
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	for _, line := range strings.Split(string(content), "\n") {
-		tokens := strings.SplitN(line, "=", 2)
-		if len(tokens) == 2 && tokens[0][0] != '#' {
-			k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
-			os.Setenv(k, v)
-		}
-	}
-	return nil
-}
-
 // default port
 func defaultPort() uint {
 	s := os.Getenv("GOREMAN_RPC_PORT")
@@ -130,7 +112,7 @@ func start() error {
 		}
 		procs = tmp
 	}
-	err = readEnvfile()
+	err = godotenv.Load()
 	if err != nil {
 		return err
 	}
