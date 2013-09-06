@@ -41,6 +41,7 @@ var procs map[string]*procInfo
 
 // filename of Procfile.
 var procfile = flag.String("f", "Procfile", "proc file")
+var maxProcNameLength = 0
 
 // read Procfile and parse it.
 func readProcfile() error {
@@ -54,6 +55,9 @@ func readProcfile() error {
 		if len(tokens) == 2 && tokens[0][0] != '#' {
 			k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
 			procs[k] = &procInfo{k, v, false, nil}
+			if len(k) > maxProcNameLength {
+				maxProcNameLength = len(k)
+			}
 		}
 	}
 	if len(procs) == 0 {
