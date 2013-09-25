@@ -112,10 +112,7 @@ func start() error {
 		}
 		procs = tmp
 	}
-	err = godotenv.Load()
-	if err != nil {
-		return err
-	}
+	godotenv.Load()
 	go startServer()
 	return startProcs()
 }
