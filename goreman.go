@@ -42,6 +42,11 @@ var procs map[string]*procInfo
 
 // filename of Procfile.
 var procfile = flag.String("f", "Procfile", "proc file")
+// rpc port number.
+var port = flag.Uint("p", defaultPort(), "port")
+// base directory
+var basedir = flag.String("basedir", "", "base directory")
+
 var maxProcNameLength = 0
 
 // read Procfile and parse it.
@@ -79,9 +84,6 @@ func defaultPort() uint {
 	return 5555
 }
 
-// rpc port number.
-var port = flag.Uint("p", defaultPort(), "port")
-
 // command: check. show Procfile entries.
 func check() error {
 	err := readProcfile()
@@ -118,6 +120,8 @@ func start() error {
 }
 
 func main() {
+	var err error
+
 	flag.Parse()
 
 	if flag.NArg() == 0 {
@@ -125,7 +129,14 @@ func main() {
 	}
 	cmd := flag.Args()[0]
 
-	var err error
+	if *basedir != "" {
+		err = os.Chdir(*basedir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "goreman: %s\n", err.Error())
+			os.Exit(1)
+		}
+	}
+
 	switch cmd {
 	case "check":
 		err = check()
