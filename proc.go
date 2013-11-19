@@ -29,6 +29,9 @@ func stopProc(proc string, quit bool) error {
 		return nil
 	}
 
+	defer func() {
+		recover()
+	}()
 	procs[proc].quit = quit
 	err := terminateProc(proc);
 	if err != nil {
@@ -37,6 +40,8 @@ func stopProc(proc string, quit bool) error {
 	_, err = procs[proc].cmd.Process.Wait()
 	if err == nil {
 		procs[proc].cmd = nil
+	} else {
+		err = procs[proc].cmd.Process.Kill()
 	}
 	return err
 }
