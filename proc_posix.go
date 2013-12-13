@@ -34,5 +34,5 @@ func spawnProc(proc string) bool {
 }
 
 func terminateProc(proc string) error {
-	return procs[proc].cmd.Process.Signal(syscall.SIGINT)
+	return procs[proc].cmd.Process.Signal(syscall.SIGHUP)
 }
