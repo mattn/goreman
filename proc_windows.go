@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"syscall"
 )
@@ -18,6 +19,7 @@ func spawnProc(proc string) bool {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		CreationFlags: syscall.CREATE_UNICODE_ENVIRONMENT | 0x00000200,
 	}
+	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procs[proc].port))
 
 	fmt.Fprintf(logger, "START")
 	err := cmd.Start()

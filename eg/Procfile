@@ -1,3 +1,3 @@
-web1: plackup --port 5000
-web2: plackup --port 5001
+web1: plackup --port $PORT
+web2: plackup --port $PORT
 web3: bundle exec ruby web.rb

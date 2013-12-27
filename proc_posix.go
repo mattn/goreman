@@ -17,6 +17,7 @@ func spawnProc(proc string) bool {
 	cmd.Stdin = nil
 	cmd.Stdout = logger
 	cmd.Stderr = logger
+	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procs[proc].port))
 
 	fmt.Fprintf(logger, "START")
 	err := cmd.Start()

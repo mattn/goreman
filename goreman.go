@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -35,6 +37,7 @@ type procInfo struct {
 	cmdline string
 	quit    bool
 	cmd     *exec.Cmd
+	port	uint
 }
 
 // process informations named with proc.
@@ -46,6 +49,8 @@ var procfile = flag.String("f", "Procfile", "proc file")
 var port = flag.Uint("p", defaultPort(), "port")
 // base directory
 var basedir = flag.String("basedir", "", "base directory")
+// base of port numbers for app
+var baseport = flag.Uint("b", 5000, "base number of port")
 
 var maxProcNameLength = 0
 
@@ -56,14 +61,22 @@ func readProcfile() error {
 	if err != nil {
 		return err
 	}
+	re := regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9])`)
 	for _, line := range strings.Split(string(content), "\n") {
 		tokens := strings.SplitN(line, ":", 2)
-		if len(tokens) == 2 && tokens[0][0] != '#' {
-			k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
-			procs[k] = &procInfo{k, v, false, nil}
-			if len(k) > maxProcNameLength {
-				maxProcNameLength = len(k)
-			}
+		if len(tokens) != 2 || tokens[0][0] == '#' {
+			continue
+		}
+		k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
+		if runtime.GOOS == "windows" {
+			v = re.ReplaceAllStringFunc(v, func(s string) string {
+				return "%" + s[1:] + "%"
+			})
+		}
+		procs[k] = &procInfo{k, v, false, nil, *baseport}
+		*baseport++
+		if len(k) > maxProcNameLength {
+			maxProcNameLength = len(k)
 		}
 	}
 	if len(procs) == 0 {
@@ -81,7 +94,7 @@ func defaultPort() uint {
 			return uint(i)
 		}
 	}
-	return 5555
+	return 8555
 }
 
 // command: check. show Procfile entries.
