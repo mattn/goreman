@@ -15,6 +15,9 @@ func spawnProc(proc string) bool {
 	cmd.Stdin = nil
 	cmd.Stdout = logger
 	cmd.Stderr = logger
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: syscall.CREATE_UNICODE_ENVIRONMENT | 0x00000200,
+	}
 
 	fmt.Fprintf(logger, "START")
 	err := cmd.Start()
@@ -36,11 +39,41 @@ func terminateProc(proc string) error {
 	if err != nil {
 		return err
 	}
-	f, err := dll.FindProc("GenerateConsoleCtrlEvent")
+	defer dll.Release()
+
+	pid := procs[proc].cmd.Process.Pid
+
+	f, err := dll.FindProc("FreeConsole")
 	if err != nil {
 		return err
 	}
-	pid := procs[proc].cmd.Process.Pid
-	f.Call(syscall.CTRL_C_EVENT, uintptr(pid))
+	r1, _, err := f.Call()
+	if r1 == 0 {
+		return err
+	}
+	f, err = dll.FindProc("AttachConsole")
+	if err != nil {
+		return err
+	}
+	r1, _, err = f.Call(uintptr(pid))
+	if r1 == 0 {
+		return err
+	}
+	f, err = dll.FindProc("SetConsoleCtrlHandler")
+	if err != nil {
+		return err
+	}
+	r1, _, err = f.Call(0, 1)
+	if r1 == 0 {
+		return err
+	}
+	f, err = dll.FindProc("GenerateConsoleCtrlEvent")
+	if err != nil {
+		return err
+	}
+	r1, _, err = f.Call(syscall.CTRL_BREAK_EVENT, uintptr(pid))
+	if r1 == 0 {
+		return err
+	}
 	return nil
 }
