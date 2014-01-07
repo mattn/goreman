@@ -37,7 +37,7 @@ type procInfo struct {
 	cmdline string
 	quit    bool
 	cmd     *exec.Cmd
-	port	uint
+	port    uint
 }
 
 // process informations named with proc.
@@ -45,10 +45,13 @@ var procs map[string]*procInfo
 
 // filename of Procfile.
 var procfile = flag.String("f", "Procfile", "proc file")
+
 // rpc port number.
 var port = flag.Uint("p", defaultPort(), "port")
+
 // base directory
 var basedir = flag.String("basedir", "", "base directory")
+
 // base of port numbers for app
 var baseport = flag.Uint("b", 5000, "base number of port")
 

@@ -33,11 +33,11 @@ func stopProc(proc string, quit bool) error {
 		recover()
 	}()
 	procs[proc].quit = quit
-	err := terminateProc(proc);
+	err := terminateProc(proc)
 	if err != nil {
 		return err
 	}
-	timeout := time.AfterFunc(10 * time.Second, func() {
+	timeout := time.AfterFunc(10*time.Second, func() {
 		err = procs[proc].cmd.Process.Kill()
 	})
 	_, err = procs[proc].cmd.Process.Wait()
