@@ -8,10 +8,10 @@ https://github.com/ddollar/foreman
 
     go get github.com/mattn/goreman
 
-## Authors
-
-Yasuhiro Matsumoto (a.k.a mattn)
-
 ## License
 
 MIT
+
+## Authors
+
+Yasuhiro Matsumoto (a.k.a mattn)
