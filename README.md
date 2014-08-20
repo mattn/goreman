@@ -1,6 +1,6 @@
 # Goreman
 
-Clone of foreman written in golang
+Clone of foreman written in golang.
 
 https://github.com/ddollar/foreman
 
