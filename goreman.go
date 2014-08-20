@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-const version = "0.0.2"
+const version = "0.0.3"
 
 func usage() {
 	fmt.Fprint(os.Stderr, `Tasks:
