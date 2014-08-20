@@ -10,8 +10,7 @@ https://github.com/ddollar/foreman
 
 ## Authors
 
-#### Created and maintained by
-Yasuhiro Matsumoto
+Yasuhiro Matsumoto (a.k.a mattn)
 
 ## License
 
