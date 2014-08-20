@@ -8,6 +8,10 @@ https://github.com/ddollar/foreman
 
     go get github.com/mattn/goreman
 
+## Usage
+
+    goreman start
+
 ## License
 
 MIT
