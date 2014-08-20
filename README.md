@@ -12,6 +12,10 @@ https://github.com/ddollar/foreman
 
     goreman start
 
+## Example
+
+See `eg` directory
+
 ## License
 
 MIT
