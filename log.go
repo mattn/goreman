@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/daviddengcn/go-colortext"
-	"strings"
 	"sync"
 	"time"
 )
@@ -29,17 +29,17 @@ var mutex = new(sync.Mutex)
 func (l *clogger) Write(p []byte) (n int, err error) {
 	mutex.Lock()
 	defer mutex.Unlock()
-	for _, line := range strings.Split(string(p), "\n") {
+	for _, line := range bytes.Split(p, []byte{'\n'}) {
 		if len(line) > 0 && line[len(line)-1] == '\n' {
 			line = line[0 : len(line)-2]
 		}
-		if line != "" {
+		if len(line) > 0 {
 			ct.ChangeColor(colors[l.idx], false, ct.None, false)
 			now := time.Now().Format("15:04:05")
 			format := fmt.Sprintf("%%s %%%ds | ", maxProcNameLength)
 			fmt.Printf(format, now, l.proc)
 			ct.ResetColor()
-			fmt.Println(line)
+			fmt.Println(string(line))
 		}
 	}
 	n = len(p)
