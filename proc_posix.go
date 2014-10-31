@@ -20,17 +20,17 @@ func spawnProc(proc string) bool {
 	cmd.Stderr = logger
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procs[proc].port))
 
-	fmt.Fprintln(logger, "START")
+	fmt.Fprintf(logger, "Starting %s on port %d\n", proc, procs[proc].port)
 	err := cmd.Start()
 	if err != nil {
-		fmt.Fprintf(logger, "failed to execute external command. %s", err)
+		fmt.Fprintf(logger, "Failed to start %s: %s\n", proc, err)
 		return true
 	}
 	procs[proc].cmd = cmd
 	procs[proc].quit = true
 	procs[proc].cmd.Wait()
 	procs[proc].cmd = nil
-	fmt.Fprintln(logger, "QUIT")
+	fmt.Fprintf(logger, "Terminating %s\n", proc)
 
 	return procs[proc].quit
 }
