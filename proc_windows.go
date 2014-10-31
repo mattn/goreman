@@ -45,27 +45,11 @@ func terminateProc(proc string) error {
 
 	pid := procs[proc].cmd.Process.Pid
 
-	f, err := dll.FindProc("FreeConsole")
+	f, err := dll.FindProc("SetConsoleCtrlHandler")
 	if err != nil {
 		return err
 	}
-	r1, _, err := f.Call()
-	if r1 == 0 {
-		return err
-	}
-	f, err = dll.FindProc("AttachConsole")
-	if err != nil {
-		return err
-	}
-	r1, _, err = f.Call(uintptr(pid))
-	if r1 == 0 {
-		return err
-	}
-	f, err = dll.FindProc("SetConsoleCtrlHandler")
-	if err != nil {
-		return err
-	}
-	r1, _, err = f.Call(0, 1)
+	r1, _, err := f.Call(0, 1)
 	if r1 == 0 {
 		return err
 	}
