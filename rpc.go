@@ -53,8 +53,8 @@ func (r *Goreman) List(empty string, ret *string) (err error) {
 	return err
 }
 
-// rpc: dump
-func (r *Goreman) Dump(empty string, ret *string) (err error) {
+// rpc: status
+func (r *Goreman) Status(empty string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
@@ -62,10 +62,10 @@ func (r *Goreman) Dump(empty string, ret *string) (err error) {
 	}()
 	*ret = ""
 	for proc := range procs {
-		if procs[proc].quit {
-			*ret += proc + "\n"
+		if procs[proc].cmd != nil {
+			*ret += "*" + proc + "\n"
 		} else {
-			*ret += "#" + proc + "\n"
+			*ret += " " + proc + "\n"
 		}
 	}
 	return err
@@ -90,8 +90,8 @@ func run(cmd, proc string) error {
 		err := client.Call("Goreman.List", "", &ret)
 		fmt.Print(ret)
 		return err
-	case "dump":
-		err := client.Call("Goreman.Dump", "", &ret)
+	case "status":
+		err := client.Call("Goreman.Status", "", &ret)
 		fmt.Print(ret)
 		return err
 	}
