@@ -31,7 +31,7 @@ func (l *clogger) Write(p []byte) (int, error) {
 	wrote := 0
 	for {
 		line, err := buf.ReadBytes('\n')
-		if len(line) > 0 {
+		if len(line) > 1 {
 			now := time.Now().Format("15:04:05")
 			format := fmt.Sprintf("%%s %%%ds | ", maxProcNameLength)
 			s := string(line)
@@ -48,6 +48,9 @@ func (l *clogger) Write(p []byte) (int, error) {
 		if err != nil {
 			break
 		}
+	}
+	if len(p) > 0 && p[len(p)-1] != '\n' {
+		fmt.Println()
 	}
 	return len(p), nil
 }
