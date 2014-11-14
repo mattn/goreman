@@ -42,7 +42,7 @@ func stopProc(proc string, quit bool) error {
 			err = p.cmd.Process.Kill()
 		}
 	})
-	_, err = procs[proc].cmd.Process.Wait()
+	err = procs[proc].cmd.Wait()
 	timeout.Stop()
 	if err == nil {
 		procs[proc].cmd = nil
