@@ -1,8 +1,8 @@
 package main
 
 import (
-    "flag"
-    "github.com/hoisie/web"
+	"flag"
+	"github.com/hoisie/web"
 )
 
 var addr = flag.String("a", ":8080", "address")
@@ -12,5 +12,5 @@ func main() {
 	web.Get("/", func() string {
 		return "Hello World"
 	})
-	web.Run(":8080")
+	web.Run(*addr)
 }
