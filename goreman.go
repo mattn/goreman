@@ -19,12 +19,12 @@ const version = "0.0.6"
 
 func usage() {
 	fmt.Fprint(os.Stderr, `Tasks:
-  goreman check                  # Show entries in Procfile
-  goreman help [TASK]            # Show this help
-  goreman run COMMAND [ARGS...]  # Run a command
-                                   (start/stop/restart/list/status)
-  goreman start [PROCESS]        # Start the application
-  goreman version                # Display Goreman version
+  goreman check                     # Show entries in Procfile
+  goreman help [TASK]               # Show this help
+  goreman run COMMAND [PROCESS...]  # Run a command
+                                      (start/stop/restart/list/status)
+  goreman start [PROCESS]           # Start the application
+  goreman version                   # Display Goreman version
 
 Options:
 `)
