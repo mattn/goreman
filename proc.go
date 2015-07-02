@@ -86,10 +86,8 @@ func startProcs() error {
 		startProc(proc)
 	}
 	sc := make(chan os.Signal, 10)
-	state := true
 	go func() {
 		wg.Wait()
-		state = false
 		sc <- syscall.SIGINT
 	}()
 	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
