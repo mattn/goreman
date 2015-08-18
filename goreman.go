@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -58,10 +59,39 @@ var baseport = flag.Uint("b", 5000, "base number of port")
 
 var maxProcNameLength = 0
 
+type config struct {
+	Procfile string `yaml:"procfile"`
+	Port     uint   `yaml:"port"`
+	BaseDir  string `yaml:"basedir"`
+	BasePort uint   `yaml:"baseport"`
+	Args     []string
+}
+
+func readConfig() *config {
+	var cfg config
+
+	flag.Parse()
+	if flag.NArg() == 0 {
+		usage()
+	}
+
+	cfg.Procfile = *procfile
+	cfg.Port = *port
+	cfg.BaseDir = *basedir
+	cfg.BasePort = *baseport
+	cfg.Args = flag.Args()
+
+	b, err := ioutil.ReadFile(".goreman")
+	if err == nil {
+		yaml.Unmarshal(b, &cfg)
+	}
+	return &cfg
+}
+
 // read Procfile and parse it.
-func readProcfile() error {
+func readProcfile(cfg *config) error {
 	procs = map[string]*procInfo{}
-	content, err := ioutil.ReadFile(*procfile)
+	content, err := ioutil.ReadFile(cfg.Procfile)
 	if err != nil {
 		return err
 	}
@@ -102,8 +132,8 @@ func defaultPort() uint {
 }
 
 // command: check. show Procfile entries.
-func check() error {
-	err := readProcfile()
+func check(cfg *config) error {
+	err := readProcfile(cfg)
 	if err != nil {
 		return err
 	}
@@ -119,14 +149,14 @@ func check() error {
 }
 
 // command: start. spawn procs.
-func start() error {
-	err := readProcfile()
+func start(cfg *config) error {
+	err := readProcfile(cfg)
 	if err != nil {
 		return err
 	}
-	if flag.NArg() > 1 {
+	if len(cfg.Args) > 1 {
 		tmp := map[string]*procInfo{}
-		for _, v := range flag.Args()[1:] {
+		for _, v := range cfg.Args[1:] {
 			tmp[v] = procs[v]
 		}
 		procs = tmp
@@ -139,41 +169,37 @@ func start() error {
 func main() {
 	var err error
 
-	flag.Parse()
+	cfg := readConfig()
 
-	if flag.NArg() == 0 {
-		usage()
-	}
-	cmd := flag.Args()[0]
-
-	if *basedir != "" {
-		err = os.Chdir(*basedir)
+	if cfg.BaseDir != "" {
+		err = os.Chdir(cfg.BaseDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "goreman: %s\n", err.Error())
 			os.Exit(1)
 		}
 	}
 
+	cmd := cfg.Args[0]
 	switch cmd {
 	case "check":
-		err = check()
+		err = check(cfg)
 		break
 	case "help":
 		usage()
 		break
 	case "run":
-		if flag.NArg() == 3 {
-			cmd, proc := flag.Args()[1], flag.Args()[2]
+		if len(cfg.Args) == 3 {
+			cmd, proc := cfg.Args[1], cfg.Args[2]
 			err = run(cmd, proc)
-		} else if flag.NArg() == 2 {
-			cmd := flag.Args()[1]
+		} else if len(cfg.Args) == 2 {
+			cmd := cfg.Args[1]
 			err = run(cmd, "")
 		} else {
 			usage()
 		}
 		break
 	case "start":
-		err = start()
+		err = start(cfg)
 		break
 	case "version":
 		fmt.Println(version)
