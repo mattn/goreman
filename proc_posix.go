@@ -36,5 +36,14 @@ func spawnProc(proc string) bool {
 }
 
 func terminateProc(proc string) error {
-	return procs[proc].cmd.Process.Signal(syscall.SIGHUP)
+	p := procs[proc].cmd.Process
+	if p == nil {
+		return nil
+	}
+	// find pgid, ref: http://unix.stackexchange.com/questions/14815/process-descendants
+	group, err := os.FindProcess(-1 * p.Pid)
+	if err == nil {
+		err = group.Signal(syscall.SIGHUP)
+	}
+	return err
 }
