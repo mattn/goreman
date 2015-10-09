@@ -95,7 +95,7 @@ func readProcfile(cfg *config) error {
 	if err != nil {
 		return err
 	}
-	re := regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_])`)
+	re := regexp.MustCompile(`\$([a-zA-Z_]+[a-zA-Z0-9_])`)
 	for _, line := range strings.Split(string(content), "\n") {
 		tokens := strings.SplitN(line, ":", 2)
 		if len(tokens) != 2 || tokens[0][0] == '#' {
