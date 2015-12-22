@@ -40,10 +40,21 @@ func terminateProc(proc string) error {
 	if p == nil {
 		return nil
 	}
-	// find pgid, ref: http://unix.stackexchange.com/questions/14815/process-descendants
-	group, err := os.FindProcess(-1 * p.Pid)
-	if err == nil {
-		err = group.Signal(syscall.SIGHUP)
+
+	pgid, err := syscall.Getpgid(p.Pid)
+	if err != nil {
+		return err
+	}
+
+	// use pgid, ref: http://unix.stackexchange.com/questions/14815/process-descendants
+	pid := p.Pid
+	if pgid == p.Pid {
+		pid = -1 * pid
+	}
+
+	target, err := os.FindProcess(pid)
+	if err != nil {
+		err = target.Signal(syscall.SIGHUP)
 	}
 	return err
 }
