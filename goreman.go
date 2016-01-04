@@ -107,8 +107,8 @@ func readProcfile(cfg *config) error {
 				return "%" + s[1:] + "%"
 			})
 		}
-		procs[k] = &procInfo{k, v, false, nil, *baseport}
-		*baseport++
+		procs[k] = &procInfo{k, v, false, nil, cfg.BasePort}
+		cfg.BasePort++
 		if len(k) > maxProcNameLength {
 			maxProcNameLength = len(k)
 		}
