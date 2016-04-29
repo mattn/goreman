@@ -11,15 +11,6 @@ import (
 
 var wg sync.WaitGroup
 
-func terminated() {
-	func() {
-		defer func() {
-			recover()
-		}()
-		wg.Done()
-	}()
-}
-
 // stop specified proc.
 func stopProc(proc string, quit bool) error {
 	p, ok := procs[proc]
@@ -65,10 +56,10 @@ func startProc(proc string) error {
 		return nil
 	}
 
+	wg.Add(1)
 	go func() {
-		if spawnProc(proc) {
-			terminated()
-		}
+		spawnProc(proc)
+		wg.Done()
 		p.mu.Unlock()
 	}()
 	return nil
@@ -85,7 +76,6 @@ func restartProc(proc string) error {
 
 // spawn all procs.
 func startProcs() error {
-	wg.Add(len(procs))
 	for proc := range procs {
 		startProc(proc)
 	}
