@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const version = "0.0.6"
@@ -40,6 +41,7 @@ type procInfo struct {
 	quit    bool
 	cmd     *exec.Cmd
 	port    uint
+	mu	sync.Mutex
 }
 
 // process informations named with proc.
@@ -107,7 +109,7 @@ func readProcfile(cfg *config) error {
 				return "%" + s[1:] + "%"
 			})
 		}
-		procs[k] = &procInfo{k, v, false, nil, cfg.BasePort}
+		procs[k] = &procInfo{proc : k, cmdline : v, port : cfg.BasePort}
 		cfg.BasePort++
 		if len(k) > maxProcNameLength {
 			maxProcNameLength = len(k)

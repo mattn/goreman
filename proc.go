@@ -22,17 +22,22 @@ func terminated() {
 
 // stop specified proc.
 func stopProc(proc string, quit bool) error {
-	if _, ok := procs[proc]; !ok {
+	p, ok := procs[proc]
+	if !ok {
 		return errors.New("Unknown proc: " + proc)
 	}
-	if procs[proc].cmd == nil {
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.cmd == nil {
 		return nil
 	}
 
 	defer func() {
 		recover()
 	}()
-	procs[proc].quit = quit
+	p.quit = quit
 	err := terminateProc(proc)
 	if err != nil {
 		return err
@@ -42,12 +47,12 @@ func stopProc(proc string, quit bool) error {
 			err = p.cmd.Process.Kill()
 		}
 	})
-	err = procs[proc].cmd.Wait()
+	err = p.cmd.Wait()
 	timeout.Stop()
 	if err == nil {
-		procs[proc].cmd = nil
+		p.cmd = nil
 	} else if procs[proc].cmd.Process != nil {
-		err = procs[proc].cmd.Process.Kill()
+		err = p.cmd.Process.Kill()
 	}
 	return err
 }
@@ -92,10 +97,8 @@ func startProcs() error {
 	}()
 	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	<-sc
-	for proc, p := range procs {
-		if p.cmd != nil {
-			stopProc(proc, true)
-		}
+	for proc := range procs {
+		stopProc(proc, true)
 		terminated()
 	}
 	return nil
