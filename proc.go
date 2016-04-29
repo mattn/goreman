@@ -34,9 +34,6 @@ func stopProc(proc string, quit bool) error {
 		return nil
 	}
 
-	defer func() {
-		recover()
-	}()
 	p.quit = quit
 	err := terminateProc(proc)
 	if err != nil {
@@ -47,8 +44,9 @@ func stopProc(proc string, quit bool) error {
 			err = p.cmd.Process.Kill()
 		}
 	})
-	err = p.cmd.Wait()
+	p.cond.Wait()
 	timeout.Stop()
+	err = p.waitErr
 	if err == nil {
 		p.cmd = nil
 	} else if procs[proc].cmd.Process != nil {
@@ -59,10 +57,14 @@ func stopProc(proc string, quit bool) error {
 
 // start specified proc. if proc is started already, return nil.
 func startProc(proc string) error {
-	if _, ok := procs[proc]; !ok {
+	p, ok := procs[proc]
+	if !ok {
 		return errors.New("Unknown proc: " + proc)
 	}
+
+	p.mu.Lock()
 	if procs[proc].cmd != nil {
+		p.mu.Unlock()
 		return nil
 	}
 
@@ -70,6 +72,7 @@ func startProc(proc string) error {
 		if spawnProc(proc) {
 			terminated()
 		}
+		p.mu.Unlock()
 	}()
 	return nil
 }

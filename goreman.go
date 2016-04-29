@@ -41,7 +41,9 @@ type procInfo struct {
 	quit    bool
 	cmd     *exec.Cmd
 	port    uint
-	mu	sync.Mutex
+	mu      sync.Mutex
+	cond    *sync.Cond
+	waitErr error
 }
 
 // process informations named with proc.
@@ -109,7 +111,9 @@ func readProcfile(cfg *config) error {
 				return "%" + s[1:] + "%"
 			})
 		}
-		procs[k] = &procInfo{proc : k, cmdline : v, port : cfg.BasePort}
+		p := &procInfo{proc: k, cmdline: v, port: cfg.BasePort}
+		p.cond = sync.NewCond(&p.mu)
+		procs[k] = p
 		cfg.BasePort++
 		if len(k) > maxProcNameLength {
 			maxProcNameLength = len(k)

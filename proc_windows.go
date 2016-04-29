@@ -27,11 +27,13 @@ func spawnProc(proc string) bool {
 		fmt.Fprintf(logger, "Failed to start %s: %s\n", proc, err)
 		return true
 	}
-	procs[proc].mu.Lock()
-	defer procs[proc].mu.Unlock()
 	procs[proc].cmd = cmd
 	procs[proc].quit = true
-	procs[proc].cmd.Wait()
+	procs[proc].mu.Unlock()
+	err = cmd.Wait()
+	procs[proc].mu.Lock()
+	procs[proc].cond.Broadcast()
+	procs[proc].waitErr = err
 	procs[proc].cmd = nil
 	fmt.Fprintf(logger, "Terminating %s\n", proc)
 
