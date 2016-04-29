@@ -80,7 +80,6 @@ func restartProc(proc string) error {
 		return errors.New("Unknown proc: " + proc)
 	}
 	stopProc(proc, false)
-	time.Sleep(1 * time.Second)
 	return startProc(proc)
 }
 
