@@ -49,7 +49,7 @@ func stopProc(proc string, quit bool) error {
 	err = p.waitErr
 	if err == nil {
 		p.cmd = nil
-	} else if procs[proc].cmd.Process != nil {
+	} else if p.cmd != nil && p.cmd.Process != nil {
 		err = p.cmd.Process.Kill()
 	}
 	return err
@@ -101,7 +101,6 @@ func startProcs() error {
 	<-sc
 	for proc := range procs {
 		stopProc(proc, true)
-		terminated()
 	}
 	return nil
 }
