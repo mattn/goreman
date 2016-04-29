@@ -58,7 +58,7 @@ func terminateProc(proc string) error {
 
 	target, err := os.FindProcess(pid)
 	if err != nil {
-		err = target.Signal(syscall.SIGHUP)
+		return err
 	}
-	return err
+	return target.Signal(syscall.SIGHUP)
 }
