@@ -57,6 +57,8 @@ func (l *clogger) Write(p []byte) (int, error) {
 
 // create logger instance.
 func createLogger(proc string) *clogger {
+	mutex.Lock()
+	defer mutex.Unlock()
 	l := &clogger{ci, proc}
 	ci++
 	if ci >= len(colors) {
