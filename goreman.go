@@ -25,6 +25,7 @@ func usage() {
   goreman check                      # Show entries in Procfile
   goreman help [TASK]                # Show this help
   goreman export [FORMAT] [LOCATION] # Export the apps to another process
+                                       (upstart)
   goreman run COMMAND [PROCESS...]   # Run a command
                                        (start/stop/restart/list/status)
   goreman start [PROCESS]            # Start the application
