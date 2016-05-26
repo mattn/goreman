@@ -4,8 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/joho/godotenv"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -15,6 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v2"
 )
 
 const version = "0.0.6"
@@ -200,6 +201,14 @@ func main() {
 		} else if len(cfg.Args) == 2 {
 			cmd := cfg.Args[1]
 			err = run(cmd, "")
+		} else {
+			usage()
+		}
+		break
+	case "export":
+		if len(cfg.Args) == 3 {
+			format, path := cfg.Args[1], cfg.Args[2]
+			err = export(cfg, format, path)
 		} else {
 			usage()
 		}
