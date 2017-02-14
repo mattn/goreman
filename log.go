@@ -3,9 +3,10 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/daviddengcn/go-colortext"
 	"sync"
 	"time"
+
+	"github.com/daviddengcn/go-colortext"
 )
 
 type clogger struct {
