@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "0.0.6"
+const version = "0.0.9"
 
 func usage() {
 	fmt.Fprint(os.Stderr, `Tasks:
