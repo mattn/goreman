@@ -171,7 +171,7 @@ func start(cfg *config) error {
 		procs = tmp
 	}
 	godotenv.Load()
-	go startServer()
+	go startServer(cfg.Port)
 	return startProcs()
 }
 
@@ -199,10 +199,10 @@ func main() {
 	case "run":
 		if len(cfg.Args) == 3 {
 			cmd, proc := cfg.Args[1], cfg.Args[2]
-			err = run(cmd, proc)
+			err = run(cmd, proc, cfg.Port)
 		} else if len(cfg.Args) == 2 {
 			cmd := cfg.Args[1]
-			err = run(cmd, "")
+			err = run(cmd, "", cfg.Port)
 		} else {
 			usage()
 		}
