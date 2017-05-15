@@ -17,6 +17,7 @@ import (
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
 	_ "net/http/pprof"
+	"net/http"
 )
 
 const version = "0.0.10"
@@ -67,6 +68,9 @@ var baseport = flag.Uint("b", 5000, "base number of port")
 
 // restart flag
 var restartFlg = flag.Bool("r", false, "restart proc if exit")
+
+// pprof
+var ppaddr = flag.String("ppaddr", "", "pprof addr")
 
 var maxProcNameLength = 0
 
@@ -194,6 +198,10 @@ func main() {
 			fmt.Fprintf(os.Stderr, "goreman: %s\n", err.Error())
 			os.Exit(1)
 		}
+	}
+
+	if *ppaddr != "" {
+		go http.ListenAndServe(*ppaddr, nil)
 	}
 
 	cmd := cfg.Args[0]
