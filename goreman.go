@@ -16,6 +16,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
+	_ "net/http/pprof"
 )
 
 const version = "0.0.10"
@@ -63,6 +64,9 @@ var basedir = flag.String("basedir", "", "base directory")
 
 // base of port numbers for app
 var baseport = flag.Uint("b", 5000, "base number of port")
+
+// restart flag
+var restartFlg = flag.Bool("restartFlg", false, "restart proc if exit")
 
 var maxProcNameLength = 0
 
@@ -171,7 +175,11 @@ func start(cfg *config) error {
 		procs = tmp
 	}
 	godotenv.Load()
-	go startServer(cfg.Port)
+	go func() {
+		startServer(cfg.Port)
+		fmt.Println("goreman daemon aready started, use run instead to start proc ")
+		os.Exit(-1)
+	}()
 	return startProcs()
 }
 
