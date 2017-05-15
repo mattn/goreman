@@ -66,7 +66,7 @@ var basedir = flag.String("basedir", "", "base directory")
 var baseport = flag.Uint("b", 5000, "base number of port")
 
 // restart flag
-var restartFlg = flag.Bool("restartFlg", false, "restart proc if exit")
+var restartFlg = flag.Bool("r", false, "restart proc if exit")
 
 var maxProcNameLength = 0
 
