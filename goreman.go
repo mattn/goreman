@@ -31,6 +31,7 @@ func usage() {
   goreman run COMMAND [PROCESS...]   # Run a command
                                        (start/stop/restart/list/status)
   goreman start [PROCESS]            # Start the application
+  goreman stopAll                    # Stop all process
   goreman version                    # Display Goreman version
 
 Options:
@@ -234,6 +235,8 @@ func main() {
 	case "start":
 		err = start(cfg)
 		break
+	case "stopAll":
+		err = run(cmd, "", cfg.Port)
 	case "version":
 		fmt.Println(version)
 		break

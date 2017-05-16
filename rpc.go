@@ -28,6 +28,19 @@ func (r *Goreman) Stop(proc string, ret *string) (err error) {
 	}()
 	return stopProc(proc, false)
 }
+// rpc: stopAll
+func (r *Goreman) StopAll(empty string, ret *string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	*ret = ""
+	for proc := range procs {
+		stopProc(proc, false)
+	}
+	return err
+}
 
 // rpc: restart
 func (r *Goreman) Restart(proc string, ret *string) (err error) {
@@ -84,6 +97,8 @@ func run(cmd, proc string, serverPort uint) error {
 		return client.Call("Goreman.Start", proc, &ret)
 	case "stop":
 		return client.Call("Goreman.Stop", proc, &ret)
+	case "stopAll":
+		return client.Call("Goreman.StopAll", proc, &ret)
 	case "restart":
 		return client.Call("Goreman.Restart", proc, &ret)
 	case "list":
