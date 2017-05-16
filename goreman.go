@@ -16,9 +16,11 @@ import (
 
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
+	_ "net/http/pprof"
+	"net/http"
 )
 
-const version = "0.0.6"
+const version = "0.0.10"
 
 func usage() {
 	fmt.Fprint(os.Stderr, `Tasks:
@@ -63,6 +65,12 @@ var basedir = flag.String("basedir", "", "base directory")
 
 // base of port numbers for app
 var baseport = flag.Uint("b", 5000, "base number of port")
+
+// restart flag
+var restartFlg = flag.Bool("r", false, "restart proc if exit")
+
+// pprof
+var ppaddr = flag.String("ppaddr", "", "pprof addr")
 
 var maxProcNameLength = 0
 
@@ -171,7 +179,11 @@ func start(cfg *config) error {
 		procs = tmp
 	}
 	godotenv.Load()
-	go startServer()
+	go func() {
+		startServer(cfg.Port)
+		fmt.Println("goreman daemon aready started, use run instead to start proc ")
+		os.Exit(-1)
+	}()
 	return startProcs()
 }
 
@@ -188,6 +200,10 @@ func main() {
 		}
 	}
 
+	if *ppaddr != "" {
+		go http.ListenAndServe(*ppaddr, nil)
+	}
+
 	cmd := cfg.Args[0]
 	switch cmd {
 	case "check":
@@ -199,10 +215,10 @@ func main() {
 	case "run":
 		if len(cfg.Args) == 3 {
 			cmd, proc := cfg.Args[1], cfg.Args[2]
-			err = run(cmd, proc)
+			err = run(cmd, proc, cfg.Port)
 		} else if len(cfg.Args) == 2 {
 			cmd := cfg.Args[1]
-			err = run(cmd, "")
+			err = run(cmd, "", cfg.Port)
 		} else {
 			usage()
 		}
