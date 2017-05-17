@@ -28,6 +28,19 @@ func (r *Goreman) Stop(proc string, ret *string) (err error) {
 	}()
 	return stopProc(proc, false)
 }
+// rpc: stopAll
+func (r *Goreman) StopAll(empty string, ret *string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	*ret = ""
+	for proc := range procs {
+		stopProc(proc, false)
+	}
+	return err
+}
 
 // rpc: restart
 func (r *Goreman) Restart(proc string, ret *string) (err error) {
@@ -72,8 +85,8 @@ func (r *Goreman) Status(empty string, ret *string) (err error) {
 }
 
 // command: run.
-func run(cmd, proc string, serverPort uint) error {
-	client, err := rpc.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", serverPort))
+func run(cmd, proc string) error {
+	client, err := rpc.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
 	if err != nil {
 		return err
 	}
@@ -84,6 +97,8 @@ func run(cmd, proc string, serverPort uint) error {
 		return client.Call("Goreman.Start", proc, &ret)
 	case "stop":
 		return client.Call("Goreman.Stop", proc, &ret)
+	case "stopAll":
+		return client.Call("Goreman.StopAll", proc, &ret)
 	case "restart":
 		return client.Call("Goreman.Restart", proc, &ret)
 	case "list":
@@ -99,10 +114,10 @@ func run(cmd, proc string, serverPort uint) error {
 }
 
 // start rpc server.
-func startServer(listenPort uint) error {
+func startServer() error {
 	gm := new(Goreman)
 	rpc.Register(gm)
-	server, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", listenPort))
+	server, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))
 	if err != nil {
 		return err
 	}
