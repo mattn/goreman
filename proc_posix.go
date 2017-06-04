@@ -19,6 +19,7 @@ func spawnProc(proc string) bool {
 	cmd.Stdout = logger
 	cmd.Stderr = logger
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procs[proc].port))
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	fmt.Fprintf(logger, "Starting %s on port %d\n", proc, procs[proc].port)
 	err := cmd.Start()
