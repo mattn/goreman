@@ -16,6 +16,8 @@ import (
 
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
+	_ "net/http/pprof"
+	"net/http"
 )
 
 const version = "0.0.10"
@@ -29,6 +31,7 @@ func usage() {
   goreman run COMMAND [PROCESS...]   # Run a command
                                        (start/stop/restart/list/status)
   goreman start [PROCESS]            # Start the application
+  goreman stopAll                    # Stop all process
   goreman version                    # Display Goreman version
 
 Options:
@@ -63,6 +66,12 @@ var basedir = flag.String("basedir", "", "base directory")
 
 // base of port numbers for app
 var baseport = flag.Uint("b", 5000, "base number of port")
+
+// restart flag
+var restartFlg = flag.Bool("r", false, "restart proc if exit")
+
+// pprof
+var ppaddr = flag.String("ppaddr", "", "pprof addr")
 
 var maxProcNameLength = 0
 
@@ -171,7 +180,11 @@ func start(cfg *config) error {
 		procs = tmp
 	}
 	godotenv.Load()
-	go startServer(cfg.Port)
+	go func() {
+		startServer(cfg.Port)
+		fmt.Println("goreman daemon aready started, use run instead to start proc ")
+		os.Exit(-1)
+	}()
 	return startProcs()
 }
 
@@ -186,6 +199,10 @@ func main() {
 			fmt.Fprintf(os.Stderr, "goreman: %s\n", err.Error())
 			os.Exit(1)
 		}
+	}
+
+	if *ppaddr != "" {
+		go http.ListenAndServe(*ppaddr, nil)
 	}
 
 	cmd := cfg.Args[0]
@@ -218,6 +235,8 @@ func main() {
 	case "start":
 		err = start(cfg)
 		break
+	case "stopAll":
+		err = run(cmd, "", cfg.Port)
 	case "version":
 		fmt.Println(version)
 		break
