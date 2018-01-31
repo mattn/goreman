@@ -139,7 +139,7 @@ func defaultServer(serverPort uint) string {
 	if s != "" {
 		return s
 	}
-	return fmt.Sprintf("127.0.0.1:%d", defaultServer(serverPort))
+	return fmt.Sprintf("127.0.0.1:%d", defaultPort())
 }
 
 func defaultAddr() string {
