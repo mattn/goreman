@@ -144,7 +144,7 @@ func run(cmd string, args []string, serverPort uint) error {
 		fmt.Print(ret)
 		return err
 	}
-	return errors.New("Unknown command")
+	return errors.New("unknown command")
 }
 
 // start rpc server.

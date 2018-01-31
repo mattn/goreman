@@ -15,7 +15,7 @@ var wg sync.WaitGroup
 func stopProc(proc string, quit bool) error {
 	p, ok := procs[proc]
 	if !ok || p == nil {
-		return errors.New("Unknown proc: " + proc)
+		return errors.New("unknown proc: " + proc)
 	}
 
 	p.mu.Lock()
@@ -47,7 +47,7 @@ func stopProc(proc string, quit bool) error {
 func startProc(proc string) error {
 	p, ok := procs[proc]
 	if !ok || p == nil {
-		return errors.New("Unknown proc: " + proc)
+		return errors.New("unknown proc: " + proc)
 	}
 
 	p.mu.Lock()
@@ -69,7 +69,7 @@ func startProc(proc string) error {
 func restartProc(proc string) error {
 	p, ok := procs[proc]
 	if !ok || p == nil {
-		return errors.New("Unknown proc: " + proc)
+		return errors.New("unknown proc: " + proc)
 	}
 
 	stopProc(proc, false)

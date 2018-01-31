@@ -129,7 +129,7 @@ func readProcfile(cfg *config) error {
 		}
 	}
 	if len(procs) == 0 {
-		return errors.New("No valid entry")
+		return errors.New("no valid entry")
 	}
 	return nil
 }
@@ -174,7 +174,7 @@ func start(cfg *config) error {
 		for _, v := range cfg.Args[1:] {
 			p, ok := procs[v]
 			if !ok {
-				return errors.New("Unknown proc: " + v)
+				return errors.New("unknown proc: " + v)
 			}
 			tmp[v] = p
 		}
@@ -233,7 +233,7 @@ func main() {
 	}
 
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
+		fmt.Fprintf(os.Stderr, "%s: %v\n", os.Args[0], err.Error())
 		os.Exit(1)
 	}
 }
