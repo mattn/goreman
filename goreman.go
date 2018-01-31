@@ -134,6 +134,22 @@ func readProcfile(cfg *config) error {
 	return nil
 }
 
+func defaultServer(serverPort uint) string {
+	s := os.Getenv("GOREMAN_RPC_SERVER")
+	if s != "" {
+		return s
+	}
+	return fmt.Sprintf("127.0.0.1:%d", defaultServer(serverPort))
+}
+
+func defaultAddr() string {
+	s := os.Getenv("GOREMAN_RPC_ADDR")
+	if s != "" {
+		return s
+	}
+	return "0.0.0.0"
+}
+
 // default port
 func defaultPort() uint {
 	s := os.Getenv("GOREMAN_RPC_PORT")
