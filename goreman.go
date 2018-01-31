@@ -27,7 +27,13 @@ func usage() {
   goreman export [FORMAT] [LOCATION] # Export the apps to another process
                                        (upstart)
   goreman run COMMAND [PROCESS...]   # Run a command
-                                       (start/stop/restart/list/status)
+                                       start
+                                       stop
+                                       stop-all
+                                       restart
+                                       restart-all
+                                       list
+                                       status
   goreman start [PROCESS]            # Start the application
   goreman version                    # Display Goreman version
 
@@ -166,7 +172,11 @@ func start(cfg *config) error {
 	if len(cfg.Args) > 1 {
 		tmp := map[string]*procInfo{}
 		for _, v := range cfg.Args[1:] {
-			tmp[v] = procs[v]
+			p, ok := procs[v]
+			if !ok {
+				return errors.New("Unknown proc: " + v)
+			}
+			tmp[v] = p
 		}
 		procs = tmp
 	}
@@ -197,12 +207,9 @@ func main() {
 		usage()
 		break
 	case "run":
-		if len(cfg.Args) == 3 {
-			cmd, proc := cfg.Args[1], cfg.Args[2]
-			err = run(cmd, proc, cfg.Port)
-		} else if len(cfg.Args) == 2 {
-			cmd := cfg.Args[1]
-			err = run(cmd, "", cfg.Port)
+		if len(cfg.Args) >= 2 {
+			cmd, args := cfg.Args[1], cfg.Args[2:]
+			err = run(cmd, args, cfg.Port)
 		} else {
 			usage()
 		}
