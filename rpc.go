@@ -39,6 +39,21 @@ func (r *Goreman) Restart(proc string, ret *string) (err error) {
 	return restartProc(proc)
 }
 
+// rpc: restart-all
+func (r *Goreman) RestartAll(empty string, ret *string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	for proc := range procs {
+		if err = restartProc(proc); err != nil {
+			break
+		}
+	}
+	return err
+}
+
 // rpc: list
 func (r *Goreman) List(empty string, ret *string) (err error) {
 	defer func() {
@@ -86,6 +101,8 @@ func run(cmd, proc string, serverPort uint) error {
 		return client.Call("Goreman.Stop", proc, &ret)
 	case "restart":
 		return client.Call("Goreman.Restart", proc, &ret)
+	case "restart-all":
+		return client.Call("Goreman.RestartAll", "", &ret)
 	case "list":
 		err := client.Call("Goreman.List", "", &ret)
 		fmt.Print(ret)
