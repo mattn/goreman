@@ -13,7 +13,7 @@ import (
 func spawnProc(proc string) bool {
 	logger := createLogger(proc)
 
-	cs := []string{"/bin/sh", "-c", "exec " + procs[proc].cmdline}
+	cs := []string{"/bin/sh", "-c", procs[proc].cmdline}
 	cmd := exec.Command(cs[0], cs[1:]...)
 	cmd.Stdin = nil
 	cmd.Stdout = logger
