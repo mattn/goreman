@@ -40,7 +40,7 @@ func spawnProc(proc string) bool {
 	return procs[proc].quit
 }
 
-func terminateProc(proc string) error {
+func terminateProc(proc string, signal os.Signal) error {
 	p := procs[proc].cmd.Process
 	if p == nil {
 		return nil
@@ -61,5 +61,5 @@ func terminateProc(proc string) error {
 	if err != nil {
 		return err
 	}
-	return target.Signal(syscall.SIGHUP)
+	return target.Signal(signal)
 }
