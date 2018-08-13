@@ -187,12 +187,16 @@ func start(cfg *config) error {
 	}
 	if len(cfg.Args) > 1 {
 		tmp := map[string]*procInfo{}
+		maxProcNameLength = 0
 		for _, v := range cfg.Args[1:] {
 			p, ok := procs[v]
 			if !ok {
 				return errors.New("unknown proc: " + v)
 			}
 			tmp[v] = p
+			if len(v) > maxProcNameLength {
+				maxProcNameLength = len(v)
+			}
 		}
 		procs = tmp
 	}
