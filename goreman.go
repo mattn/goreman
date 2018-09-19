@@ -48,14 +48,15 @@ Options:
 
 // -- process information structure.
 type procInfo struct {
-	proc    string
-	cmdline string
-	quit    bool
-	cmd     *exec.Cmd
-	port    uint
-	mu      sync.Mutex
-	cond    *sync.Cond
-	waitErr error
+	proc       string
+	cmdline    string
+	quit       bool
+	cmd        *exec.Cmd
+	port       uint
+	colorIndex int
+	mu         sync.Mutex
+	cond       *sync.Cond
+	waitErr    error
 }
 
 // process informations named with proc.
@@ -113,6 +114,7 @@ func readProcfile(cfg *config) error {
 		return err
 	}
 	procs = map[string]*procInfo{}
+	index := 0
 	for _, line := range strings.Split(string(content), "\n") {
 		tokens := strings.SplitN(line, ":", 2)
 		if len(tokens) != 2 || tokens[0][0] == '#' {
@@ -124,12 +126,16 @@ func readProcfile(cfg *config) error {
 				return "%" + s[1:] + "%"
 			})
 		}
-		p := &procInfo{proc: k, cmdline: v, port: cfg.BasePort}
+		p := &procInfo{proc: k, cmdline: v, port: cfg.BasePort, colorIndex: index}
 		p.cond = sync.NewCond(&p.mu)
 		procs[k] = p
 		cfg.BasePort += 100
 		if len(k) > maxProcNameLength {
 			maxProcNameLength = len(k)
+		}
+		index++
+		if index >= len(colors) {
+			index = 0
 		}
 	}
 	if len(procs) == 0 {
