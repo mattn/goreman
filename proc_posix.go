@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 // spawn command that specified as proc.
@@ -63,4 +65,9 @@ func terminateProc(proc string, signal os.Signal) error {
 		return err
 	}
 	return target.Signal(signal)
+}
+
+// killProc kills the proc with pid pid, as well as its children.
+func killProc(process *os.Process) error {
+	return unix.Kill(-1*process.Pid, syscall.SIGKILL)
 }
