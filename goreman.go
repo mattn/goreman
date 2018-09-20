@@ -1,18 +1,21 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
@@ -72,6 +75,8 @@ var baseport = flag.Uint("b", 5000, "base number of port")
 
 var maxProcNameLength = 0
 
+var re = regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)
+
 type config struct {
 	Procfile string `yaml:"procfile"`
 	Port     uint   `yaml:"port"`
@@ -103,12 +108,11 @@ func readConfig() *config {
 
 // read Procfile and parse it.
 func readProcfile(cfg *config) error {
-	procs = map[string]*procInfo{}
 	content, err := ioutil.ReadFile(cfg.Procfile)
 	if err != nil {
 		return err
 	}
-	re := regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)
+	procs = map[string]*procInfo{}
 	for _, line := range strings.Split(string(content), "\n") {
 		tokens := strings.SplitN(line, ":", 2)
 		if len(tokens) != 2 || tokens[0][0] == '#' {
@@ -135,16 +139,14 @@ func readProcfile(cfg *config) error {
 }
 
 func defaultServer(serverPort uint) string {
-	s := os.Getenv("GOREMAN_RPC_SERVER")
-	if s != "" {
+	if s, ok := os.LookupEnv("GOREMAN_RPC_SERVER"); ok {
 		return s
 	}
 	return fmt.Sprintf("127.0.0.1:%d", defaultPort())
 }
 
 func defaultAddr() string {
-	s := os.Getenv("GOREMAN_RPC_ADDR")
-	if s != "" {
+	if s, ok := os.LookupEnv("GOREMAN_RPC_ADDR"); ok {
 		return s
 	}
 	return "0.0.0.0"
@@ -180,7 +182,7 @@ func check(cfg *config) error {
 }
 
 // command: start. spawn procs.
-func start(cfg *config) error {
+func start(ctx context.Context, cfg *config) error {
 	err := readProcfile(cfg)
 	if err != nil {
 		return err
@@ -201,12 +203,20 @@ func start(cfg *config) error {
 		procs = tmp
 	}
 	godotenv.Load()
-	go startServer(cfg.Port)
+	go startServer(ctx, cfg.Port)
 	return startProcs()
 }
 
 func main() {
 	var err error
+	ctx, cancel := context.WithCancel(context.Background())
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGTERM, os.Interrupt)
+	go func() {
+		sig := <-c
+		fmt.Printf("caught signal %s, shutting down...\n", sig)
+		cancel()
+	}()
 
 	cfg := readConfig()
 
@@ -243,7 +253,7 @@ func main() {
 		}
 		break
 	case "start":
-		err = start(cfg)
+		err = start(ctx, cfg)
 		break
 	case "version":
 		fmt.Println(version)
