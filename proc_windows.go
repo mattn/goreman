@@ -68,3 +68,7 @@ func terminateProc(proc string, signal os.Signal) error {
 	}
 	return nil
 }
+
+func killProc(process *os.Process) error {
+	return process.Kill()
+}
