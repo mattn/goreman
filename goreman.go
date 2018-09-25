@@ -8,14 +8,12 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/signal"
 	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
@@ -187,7 +185,7 @@ func check(cfg *config) error {
 }
 
 // command: start. spawn procs.
-func start(ctx context.Context, cfg *config) error {
+func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	err := readProcfile(cfg)
 	if err != nil {
 		return err
@@ -209,15 +207,13 @@ func start(ctx context.Context, cfg *config) error {
 	}
 	godotenv.Load()
 	go startServer(ctx, cfg.Port)
-	return startProcs()
+	return startProcs(sig)
 }
 
 func main() {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
-	c := make(chan os.Signal, 1)
-	// TODO: consolidate with startProcs signal handler
-	signal.Notify(c, syscall.SIGTERM, os.Interrupt)
+	c := notifyCh()
 	go func() {
 		sig := <-c
 		fmt.Printf("caught signal %s, shutting down...\n", sig)
@@ -259,7 +255,7 @@ func main() {
 		}
 		break
 	case "start":
-		err = start(ctx, cfg)
+		err = start(ctx, c, cfg)
 		break
 	case "version":
 		fmt.Println(version)

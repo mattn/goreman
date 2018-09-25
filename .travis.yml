@@ -10,7 +10,6 @@ before_script:
 
 script:
   - go test ./...
-  - GOOS=windows go test ./...
 
 go:
   - 1.10.x
