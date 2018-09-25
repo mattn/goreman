@@ -50,7 +50,6 @@ Options:
 type procInfo struct {
 	proc       string
 	cmdline    string
-	quit       bool
 	cmd        *exec.Cmd
 	port       uint
 	colorIndex int

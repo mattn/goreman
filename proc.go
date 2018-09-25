@@ -11,9 +11,9 @@ import (
 
 var wg sync.WaitGroup
 
-// stop specified proc.
-// if signal is nil, SIGTERM is used
-func stopProc(proc string, quit bool, signal os.Signal) error {
+// Stop the specified proc, issuing SIGKILL if it does not terminate within 10
+// seconds. If signal is nil, SIGTERM is used.
+func stopProc(proc string, signal os.Signal) error {
 	if signal == nil {
 		signal = syscall.SIGTERM
 	}
@@ -29,7 +29,6 @@ func stopProc(proc string, quit bool, signal os.Signal) error {
 		return nil
 	}
 
-	p.quit = quit
 	err := terminateProc(proc, signal)
 	if err != nil {
 		return err
@@ -76,7 +75,7 @@ func restartProc(proc string) error {
 		return errors.New("unknown proc: " + proc)
 	}
 
-	stopProc(proc, false, nil)
+	stopProc(proc, nil)
 	return startProc(proc)
 }
 
@@ -93,7 +92,7 @@ func startProcs() error {
 	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	signal := <-sc
 	for proc := range procs {
-		stopProc(proc, true, signal)
+		stopProc(proc, signal)
 	}
 	return nil
 }

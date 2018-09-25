@@ -8,7 +8,7 @@ import (
 )
 
 // spawn command that specified as proc.
-func spawnProc(proc string) bool {
+func spawnProc(proc string) {
 	procObj := procs[proc]
 	logger := createLogger(proc, procObj.colorIndex)
 
@@ -26,10 +26,9 @@ func spawnProc(proc string) bool {
 	err := cmd.Start()
 	if err != nil {
 		fmt.Fprintf(logger, "Failed to start %s: %s\n", proc, err)
-		return true
+		return
 	}
 	procObj.cmd = cmd
-	procObj.quit = true
 	procObj.mu.Unlock()
 	err = cmd.Wait()
 	procObj.mu.Lock()
@@ -37,8 +36,6 @@ func spawnProc(proc string) bool {
 	procObj.waitErr = err
 	procObj.cmd = nil
 	fmt.Fprintf(logger, "Terminating %s\n", proc)
-
-	return procs[proc].quit
 }
 
 func terminateProc(proc string, signal os.Signal) error {
