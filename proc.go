@@ -9,8 +9,8 @@ import (
 
 var wg sync.WaitGroup
 
-// Stop the specified proc, issuing SIGKILL if it does not terminate within 10
-// seconds. If signal is nil, SIGTERM is used.
+// Stop the specified proc, issuing os.Kill if it does not terminate within 10
+// seconds. If signal is nil, os.Interrupt is used.
 func stopProc(proc string, signal os.Signal) error {
 	if signal == nil {
 		signal = os.Interrupt
@@ -26,6 +26,7 @@ func stopProc(proc string, signal os.Signal) error {
 	if p.cmd == nil {
 		return nil
 	}
+	p.stoppedBySupervisor = true
 
 	err := terminateProc(proc, signal)
 	if err != nil {
@@ -45,7 +46,7 @@ func stopProc(proc string, signal os.Signal) error {
 }
 
 // start specified proc. if proc is started already, return nil.
-func startProc(proc string) error {
+func startProc(proc string, errCh chan<- error) error {
 	p, ok := procs[proc]
 	if !ok || p == nil {
 		return errors.New("unknown proc: " + proc)
@@ -59,7 +60,7 @@ func startProc(proc string) error {
 
 	wg.Add(1)
 	go func() {
-		spawnProc(proc)
+		spawnProc(proc, errCh)
 		wg.Done()
 		p.mu.Unlock()
 	}()
@@ -74,7 +75,7 @@ func restartProc(proc string) error {
 	}
 
 	stopProc(proc, nil)
-	return startProc(proc)
+	return startProc(proc, nil)
 }
 
 // stopProcs attempts to stop every running process and returns any non-nil
@@ -92,9 +93,10 @@ func stopProcs(sig os.Signal) error {
 }
 
 // spawn all procs.
-func startProcs(sc <-chan os.Signal) error {
+func startProcs(sc <-chan os.Signal, exitOnError bool) error {
+	errCh := make(chan error, 1)
 	for proc := range procs {
-		startProc(proc)
+		startProc(proc, errCh)
 	}
 	allProcsDone := make(chan struct{}, 1)
 	go func() {
@@ -103,6 +105,11 @@ func startProcs(sc <-chan os.Signal) error {
 	}()
 	for {
 		select {
+		case err := <-errCh:
+			if exitOnError {
+				stopProcs(os.Interrupt)
+				return err
+			}
 		// TODO: add more events here.
 		case <-allProcsDone:
 			return stopProcs(os.Interrupt)
