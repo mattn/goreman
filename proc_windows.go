@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
+	"os/signal"
+
+	"golang.org/x/sys/windows"
 )
 
 // spawn command that specified as proc.
@@ -17,8 +19,8 @@ func spawnProc(proc string) {
 	cmd.Stdin = nil
 	cmd.Stdout = logger
 	cmd.Stderr = logger
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: syscall.CREATE_UNICODE_ENVIRONMENT | 0x00000200,
+	cmd.SysProcAttr = &windows.SysProcAttr{
+		CreationFlags: windows.CREATE_UNICODE_ENVIRONMENT | 0x00000200,
 	}
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procObj.port))
 
@@ -38,8 +40,8 @@ func spawnProc(proc string) {
 	fmt.Fprintf(logger, "Terminating %s\n", proc)
 }
 
-func terminateProc(proc string, signal os.Signal) error {
-	dll, err := syscall.LoadDLL("kernel32.dll")
+func terminateProc(proc string, _ os.Signal) error {
+	dll, err := windows.LoadDLL("kernel32.dll")
 	if err != nil {
 		return err
 	}
@@ -59,7 +61,7 @@ func terminateProc(proc string, signal os.Signal) error {
 	if err != nil {
 		return err
 	}
-	r1, _, err = f.Call(syscall.CTRL_BREAK_EVENT, uintptr(pid))
+	r1, _, err = f.Call(windows.CTRL_BREAK_EVENT, uintptr(pid))
 	if r1 == 0 {
 		return err
 	}
@@ -68,4 +70,10 @@ func terminateProc(proc string, signal os.Signal) error {
 
 func killProc(process *os.Process) error {
 	return process.Kill()
+}
+
+func notifyCh() <-chan os.Signal {
+	sc := make(chan os.Signal, 10)
+	signal.Notify(sc, os.Interrupt)
+	return sc
 }

@@ -3,9 +3,7 @@ package main
 import (
 	"errors"
 	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -15,7 +13,7 @@ var wg sync.WaitGroup
 // seconds. If signal is nil, SIGTERM is used.
 func stopProc(proc string, signal os.Signal) error {
 	if signal == nil {
-		signal = syscall.SIGTERM
+		signal = os.Interrupt
 	}
 	p, ok := procs[proc]
 	if !ok || p == nil {
@@ -79,20 +77,39 @@ func restartProc(proc string) error {
 	return startProc(proc)
 }
 
+// stopProcs attempts to stop every running process and returns any non-nil
+// error, if one exists. stopProcs will wait until all procs have had an
+// opportunity to stop.
+func stopProcs(sig os.Signal) error {
+	var err error
+	for proc := range procs {
+		stopErr := stopProc(proc, sig)
+		if stopErr != nil {
+			err = stopErr
+		}
+	}
+	return err
+}
+
 // spawn all procs.
 func startProcs() error {
 	for proc := range procs {
 		startProc(proc)
 	}
-	sc := make(chan os.Signal, 10)
+	allProcsDone := make(chan struct{}, 1)
 	go func() {
 		wg.Wait()
-		sc <- syscall.SIGINT
+		allProcsDone <- struct{}{}
 	}()
-	signal.Notify(sc, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
-	signal := <-sc
-	for proc := range procs {
-		stopProc(proc, signal)
+	sc := notifyCh()
+	for {
+		select {
+		// TODO: add more events here.
+		case <-allProcsDone:
+			return stopProcs(os.Interrupt)
+		case sig := <-sc:
+			return stopProcs(sig)
+		}
 	}
 	return nil
 }
