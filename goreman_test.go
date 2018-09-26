@@ -91,7 +91,6 @@ web4: sleep 10
 	now := time.Now()
 	sc := make(chan os.Signal, 1)
 	go func() {
-		time.Sleep(time.Second)
 		sc <- os.Interrupt
 	}()
 	if err := startGoreman(context.TODO(), t, sc, file); err != nil {
