@@ -21,7 +21,7 @@ func spawnProc(proc string, errCh chan<- error) {
 	cmd.Stdout = logger
 	cmd.Stderr = logger
 	cmd.SysProcAttr = &windows.SysProcAttr{
-		CreationFlags: windows.CREATE_UNICODE_ENVIRONMENT | syscall.CREATE_NEW_PROCESS_GROUP,
+		CreationFlags: windows.CREATE_UNICODE_ENVIRONMENT | windows.CREATE_NEW_PROCESS_GROUP,
 	}
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procObj.port))
 
