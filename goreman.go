@@ -216,6 +216,7 @@ func main() {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
 	c := make(chan os.Signal, 1)
+	// TODO: consolidate with startProcs signal handler
 	signal.Notify(c, syscall.SIGTERM, os.Interrupt)
 	go func() {
 		sig := <-c
