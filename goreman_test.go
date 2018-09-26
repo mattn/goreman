@@ -33,6 +33,7 @@ func startGoreman(ctx context.Context, t *testing.T, ch <-chan os.Signal, file [
 }
 
 func TestGoreman(t *testing.T) {
+	defer wg.Wait()
 	var file = []byte(`
 web1: sleep 0.1
 web2: sleep 0.1
@@ -45,6 +46,7 @@ web4: sleep 0.1
 }
 
 func TestGoremanSignal(t *testing.T) {
+	defer wg.Wait()
 	var file = []byte(`
 web1: sleep 10
 web2: sleep 10
@@ -59,12 +61,13 @@ web4: sleep 10
 	if err := startGoreman(context.TODO(), t, sc, file); err != nil {
 		t.Fatal(err)
 	}
-	if dur := time.Since(now); dur > 50*time.Millisecond {
-		t.Errorf("test took too much time; should have canceled after 10ms, got %s", dur)
+	if dur := time.Since(now); dur > 500*time.Millisecond {
+		t.Errorf("test took too much time; should have canceled after about 10ms, got %s", dur)
 	}
 }
 
 func TestGoremanExitsOnError(t *testing.T) {
+	defer wg.Wait()
 	var file = []byte(`
 web1: sleep 10
 web2: sleep 0.01 && foobarbangbazunknownproc
@@ -82,6 +85,7 @@ web4: sleep 10
 }
 
 func TestGoremanExitsOnErrorOtherWay(t *testing.T) {
+	defer wg.Wait()
 	var file = []byte(`
 web1: sleep 10
 web2: sleep 0.01 && exit 2
@@ -99,6 +103,7 @@ web4: sleep 10
 }
 
 func TestGoremanStopProcDoesntStopOtherProcs(t *testing.T) {
+	defer wg.Wait()
 	var file = []byte(`
 web1: sleep 10
 web2: sleep 10

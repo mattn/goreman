@@ -11,7 +11,16 @@ import (
 )
 
 // Goreman is RPC server
-type Goreman struct{}
+type Goreman struct {
+	rpcChan chan<- *rpcMessage
+}
+
+type rpcMessage struct {
+	Msg  string
+	Args []string
+	// sending error (if any) when the task completes
+	ErrCh chan error
+}
 
 // Start do start
 func (r *Goreman) Start(args []string, ret *string) (err error) {
@@ -35,12 +44,14 @@ func (r *Goreman) Stop(args []string, ret *string) (err error) {
 			err = r.(error)
 		}
 	}()
-	for _, arg := range args {
-		if err = stopProc(arg, nil); err != nil {
-			break
-		}
+	errChan := make(chan error, 1)
+	r.rpcChan <- &rpcMessage{
+		Msg:   "stop",
+		Args:  args,
+		ErrCh: errChan,
 	}
-	return err
+	err = <-errChan
+	return
 }
 
 // StopAll do stop all
@@ -152,8 +163,10 @@ func run(cmd string, args []string, serverPort uint) error {
 }
 
 // start rpc server.
-func startServer(ctx context.Context, listenPort uint) error {
-	gm := new(Goreman)
+func startServer(ctx context.Context, rpcChan chan<- *rpcMessage, listenPort uint) error {
+	gm := &Goreman{
+		rpcChan: rpcChan,
+	}
 	rpc.Register(gm)
 	server, err := net.Listen("tcp", fmt.Sprintf("%s:%d", defaultAddr(), listenPort))
 	if err != nil {

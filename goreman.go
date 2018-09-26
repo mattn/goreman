@@ -202,7 +202,7 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 		return err
 	}
 	if len(cfg.Args) > 1 {
-		tmp := map[string]*procInfo{}
+		tmp := make(map[string]*procInfo, len(cfg.Args[1:]))
 		maxProcNameLength = 0
 		for _, v := range cfg.Args[1:] {
 			p, ok := procs[v]
@@ -217,8 +217,9 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 		procs = tmp
 	}
 	godotenv.Load()
-	go startServer(ctx, cfg.Port)
-	return startProcs(sig, cfg.ExitOnError)
+	rpcChan := make(chan *rpcMessage, 10)
+	go startServer(ctx, rpcChan, cfg.Port)
+	return startProcs(sig, rpcChan, cfg.ExitOnError)
 }
 
 func main() {
