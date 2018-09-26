@@ -21,7 +21,7 @@ func (r *Goreman) Start(args []string, ret *string) (err error) {
 		}
 	}()
 	for _, arg := range args {
-		if err = startProc(arg); err != nil {
+		if err = startProc(arg, nil); err != nil {
 			break
 		}
 	}

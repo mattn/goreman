@@ -10,7 +10,7 @@ import (
 )
 
 // spawn command that specified as proc.
-func spawnProc(proc string) {
+func spawnProc(proc string, errCh chan<- error) {
 	procObj := procs[proc]
 	logger := createLogger(proc, procObj.colorIndex)
 
@@ -25,16 +25,26 @@ func spawnProc(proc string) {
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procObj.port))
 
 	fmt.Fprintf(logger, "Starting %s on port %d\n", proc, procObj.port)
-	err := cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
+		select {
+		case errCh <- err:
+		default:
+		}
 		fmt.Fprintf(logger, "Failed to start %s: %s\n", proc, err)
 		return
 	}
 	procObj.cmd = cmd
+	procObj.stoppedBySupervisor = false
 	procObj.mu.Unlock()
-	err = cmd.Wait()
+	err := cmd.Wait()
 	procObj.mu.Lock()
 	procObj.cond.Broadcast()
+	if err != nil && procObj.stoppedBySupervisor == false {
+		select {
+		case errCh <- err:
+		default:
+		}
+	}
 	procObj.waitErr = err
 	procObj.cmd = nil
 	fmt.Fprintf(logger, "Terminating %s\n", proc)

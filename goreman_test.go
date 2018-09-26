@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func startGoreman(ctx context.Context, t *testing.T, ch <-chan os.Signal, file []byte) {
+func startGoreman(ctx context.Context, t *testing.T, ch <-chan os.Signal, file []byte) error {
 	t.Helper()
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
@@ -23,14 +23,13 @@ func startGoreman(ctx context.Context, t *testing.T, ch <-chan os.Signal, file [
 		t.Fatal(err)
 	}
 	cfg := &config{
-		Procfile: f.Name(),
+		ExitOnError: true,
+		Procfile:    f.Name(),
 	}
 	if ch == nil {
 		ch = notifyCh()
 	}
-	if err := start(ctx, ch, cfg); err != nil {
-		t.Fatal(err)
-	}
+	return start(ctx, ch, cfg)
 }
 
 func TestGoreman(t *testing.T) {
@@ -40,7 +39,9 @@ web2: sleep 0.1
 web3: sleep 0.1
 web4: sleep 0.1
 `)
-	startGoreman(context.TODO(), t, nil, file)
+	if err := startGoreman(context.TODO(), t, nil, file); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestGoremanSignal(t *testing.T) {
@@ -55,8 +56,87 @@ web4: sleep 10
 	go func() {
 		sc <- os.Interrupt
 	}()
-	startGoreman(context.TODO(), t, sc, file)
+	if err := startGoreman(context.TODO(), t, sc, file); err != nil {
+		t.Fatal(err)
+	}
 	if dur := time.Since(now); dur > 50*time.Millisecond {
 		t.Errorf("test took too much time; should have canceled after 10ms, got %s", dur)
 	}
+}
+
+func TestGoremanExitsOnError(t *testing.T) {
+	var file = []byte(`
+web1: sleep 10
+web2: sleep 0.01 && foobarbangbazunknownproc
+web3: sleep 10
+web4: sleep 10
+`)
+	now := time.Now()
+	// process 2 should exit which should trigger exit of entire program.
+	if err := startGoreman(context.TODO(), t, nil, file); err == nil {
+		t.Fatal("got nil err, should have received error")
+	}
+	if dur := time.Since(now); dur > 50*time.Millisecond {
+		t.Errorf("test took too much time; should have canceled after 10ms, got %s", dur)
+	}
+}
+
+func TestGoremanExitsOnErrorOtherWay(t *testing.T) {
+	var file = []byte(`
+web1: sleep 10
+web2: sleep 0.01 && exit 2
+web3: sleep 10
+web4: sleep 10
+`)
+	// process 2 should exit which should trigger exit of entire program.
+	now := time.Now()
+	if err := startGoreman(context.TODO(), t, nil, file); err == nil {
+		t.Fatal("got nil err, should have received error")
+	}
+	if dur := time.Since(now); dur > 50*time.Millisecond {
+		t.Errorf("test took too much time; should have canceled after 10ms, got %s", dur)
+	}
+}
+
+func TestGoremanStopProcDoesntStopOtherProcs(t *testing.T) {
+	var file = []byte(`
+web1: sleep 10
+web2: sleep 10
+web3: sleep 10
+web4: sleep 10
+`)
+	goremanStopped := make(chan struct{}, 1)
+	sc := make(chan os.Signal, 1)
+	go func() {
+		startGoreman(context.TODO(), t, sc, file)
+		goremanStopped <- struct{}{}
+	}()
+	for {
+		if procs == nil {
+			time.Sleep(5 * time.Millisecond)
+			continue
+		}
+		proc, ok := procs["web2"]
+		if !ok {
+			time.Sleep(5 * time.Millisecond)
+			continue
+		}
+		proc.mu.Lock()
+		cmd := proc.cmd
+		proc.mu.Unlock()
+		if cmd == nil {
+			time.Sleep(5 * time.Millisecond)
+			continue
+		}
+		if err := stopProc("web2", nil); err != nil {
+			t.Fatal(err)
+		}
+		break
+	}
+	select {
+	case <-goremanStopped:
+		t.Errorf("stopping web2 subprocess should not have stopped supervisor")
+	case <-time.After(30 * time.Millisecond):
+	}
+	sc <- os.Interrupt
 }
