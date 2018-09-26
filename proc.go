@@ -92,7 +92,7 @@ func stopProcs(sig os.Signal) error {
 }
 
 // spawn all procs.
-func startProcs() error {
+func startProcs(sc <-chan os.Signal) error {
 	for proc := range procs {
 		startProc(proc)
 	}
@@ -101,7 +101,6 @@ func startProcs() error {
 		wg.Wait()
 		allProcsDone <- struct{}{}
 	}()
-	sc := notifyCh()
 	for {
 		select {
 		// TODO: add more events here.
