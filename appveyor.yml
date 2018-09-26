@@ -3,9 +3,7 @@ clone_folder: c:\gopath\src\github.com\mattn\goreman
 environment:
   GOPATH: c:\gopath
 install:
-  - set PATH=c:\go\bin;%GOPATH%\bin;c:\tools\ruby215\bin;%PATH%;C:\MinGW\bin
-  - echo %Path%
-  - choco install -y ruby
+  - set PATH=c:\go\bin;%GOPATH%\bin;%PATH%;C:\MinGW\bin
   - rd c:\go /s /q
   - appveyor DownloadFile https://storage.googleapis.com/golang/go1.11.windows-amd64.zip
   - 7z x go1.11.windows-amd64.zip -oC:\ >nul
