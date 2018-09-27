@@ -1,17 +1,53 @@
-// Windows doesn't have sleep.exe which we use for making the subprocesses stay
-// alive for a certain amount of time.
-
-// +build !windows
-
 package main
 
 import (
 	"context"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
+
+var sleep string
+
+func TestMain(m *testing.M) {
+	var dir string
+	var err error
+	sleep, err = exec.LookPath("sleep")
+	if err != nil {
+		if runtime.GOOS != "windows" {
+			panic(err)
+		}
+
+		code := `package main;import ("os";"strconv";"time");func main(){i,_:=strconv.ParseFloat(os.Args[1]);time.Sleep(time.Duration(i)*time.Second)}`
+		dir, err := ioutil.TempDir("", "goreman-test")
+		if err != nil {
+			panic(err)
+		}
+		sleep = filepath.Join(dir, "sleep.exe")
+		src := filepath.Join(dir, "sleep.go")
+		err = ioutil.WriteFile(src, []byte(code), 0644)
+		if err != nil {
+			panic(err)
+		}
+		b, err := exec.Command("go", "build", "-o", sleep, src).CombinedOutput()
+		if err != nil {
+			panic(string(b))
+		}
+		oldpath := os.Getenv("PATH")
+		os.Setenv("PATH", dir+";"+oldpath)
+		defer os.Setenv("PATH", oldpath)
+	}
+	r := m.Run()
+
+	if dir != "" {
+		os.RemoveAll(dir)
+	}
+	os.Exit(r)
+}
 
 func startGoreman(ctx context.Context, t *testing.T, ch <-chan os.Signal, file []byte) error {
 	t.Helper()
@@ -56,6 +92,7 @@ web4: sleep 10
 	now := time.Now()
 	sc := make(chan os.Signal, 1)
 	go func() {
+		time.Sleep(100 * time.Millisecond)
 		sc <- os.Interrupt
 	}()
 	if err := startGoreman(context.TODO(), t, sc, file); err != nil {
@@ -79,8 +116,8 @@ web4: sleep 10
 	if err := startGoreman(context.TODO(), t, nil, file); err == nil {
 		t.Fatal("got nil err, should have received error")
 	}
-	if dur := time.Since(now); dur > 50*time.Millisecond {
-		t.Errorf("test took too much time; should have canceled after 10ms, got %s", dur)
+	if dur := time.Since(now); dur > time.Second {
+		t.Errorf("test took too much time; should have canceled after 1s, got %s", dur)
 	}
 }
 
@@ -97,8 +134,8 @@ web4: sleep 10
 	if err := startGoreman(context.TODO(), t, nil, file); err == nil {
 		t.Fatal("got nil err, should have received error")
 	}
-	if dur := time.Since(now); dur > 50*time.Millisecond {
-		t.Errorf("test took too much time; should have canceled after 10ms, got %s", dur)
+	if dur := time.Since(now); dur > time.Second {
+		t.Errorf("test took too much time; should have canceled after 1s, got %s", dur)
 	}
 }
 
@@ -129,10 +166,12 @@ web4: sleep 10
 		proc.mu.Lock()
 		cmd := proc.cmd
 		proc.mu.Unlock()
-		if cmd == nil {
+		if cmd == nil || cmd.Process == nil {
 			time.Sleep(5 * time.Millisecond)
 			continue
 		}
+		// call Sleep that shell will start sleep command
+		time.Sleep(time.Second)
 		if err := stopProc("web2", nil); err != nil {
 			t.Fatal(err)
 		}
