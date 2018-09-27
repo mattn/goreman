@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"net"
+	"io"
 	"sync"
 	"time"
 
@@ -16,7 +16,7 @@ type clogger struct {
 	writes  chan []byte
 	done    chan struct{}
 	timeout time.Duration // how long to wait before printing partial lines
-	buffers net.Buffers   // partial lines awaiting printing
+	buffers buffers       // partial lines awaiting printing
 }
 
 var colors = []int{
@@ -30,6 +30,33 @@ var colors = []int{
 var mutex = new(sync.Mutex)
 
 var out = colorable.NewColorableStdout()
+
+type buffers [][]byte
+
+func (v *buffers) consume(n int64) {
+	for len(*v) > 0 {
+		ln0 := int64(len((*v)[0]))
+		if ln0 > n {
+			(*v)[0] = (*v)[0][n:]
+			return
+		}
+		n -= ln0
+		*v = (*v)[1:]
+	}
+}
+
+func (v *buffers) WriteTo(w io.Writer) (n int64, err error) {
+	for _, b := range *v {
+		nb, err := w.Write(b)
+		n += int64(nb)
+		if err != nil {
+			v.consume(n)
+			return n, err
+		}
+	}
+	v.consume(n)
+	return n, nil
+}
 
 // write any stored buffers, plus the given line, then empty out
 // the buffers.
