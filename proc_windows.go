@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"syscall"
 
 	"golang.org/x/sys/windows"
 )
@@ -20,7 +21,7 @@ func spawnProc(proc string, errCh chan<- error) {
 	cmd.Stdout = logger
 	cmd.Stderr = logger
 	cmd.SysProcAttr = &windows.SysProcAttr{
-		CreationFlags: windows.CREATE_UNICODE_ENVIRONMENT | 0x00000200,
+		CreationFlags: windows.CREATE_UNICODE_ENVIRONMENT | windows.CREATE_NEW_PROCESS_GROUP,
 	}
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procObj.port))
 
@@ -59,11 +60,20 @@ func terminateProc(proc string, _ os.Signal) error {
 
 	pid := procs[proc].cmd.Process.Pid
 
-	f, err := dll.FindProc("SetConsoleCtrlHandler")
+	f, err := dll.FindProc("AttachConsole")
 	if err != nil {
 		return err
 	}
-	r1, _, err := f.Call(0, 1)
+	r1, _, err := f.Call(uintptr(pid))
+	if r1 == 0 && err != syscall.ERROR_ACCESS_DENIED {
+		return err
+	}
+
+	f, err = dll.FindProc("SetConsoleCtrlHandler")
+	if err != nil {
+		return err
+	}
+	r1, _, err = f.Call(0, 1)
 	if r1 == 0 {
 		return err
 	}
