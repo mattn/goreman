@@ -161,10 +161,12 @@ web4: sleep 10
 		proc.mu.Lock()
 		cmd := proc.cmd
 		proc.mu.Unlock()
-		if cmd == nil {
+		if cmd == nil || cmd.Process == nil {
 			time.Sleep(5 * time.Millisecond)
 			continue
 		}
+		// call Sleep that shell will start sleep command
+		time.Sleep(time.Second)
 		if err := stopProc("web2", nil); err != nil {
 			t.Fatal(err)
 		}
