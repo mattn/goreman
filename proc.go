@@ -95,7 +95,7 @@ func stopProcs(sig os.Signal) error {
 }
 
 // spawn all procs.
-func startProcs(sc <-chan os.Signal, exitOnError bool) error {
+func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool) error {
 	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 
@@ -110,12 +110,25 @@ func startProcs(sc <-chan os.Signal, exitOnError bool) error {
 	}()
 	for {
 		select {
+		case rpcMsg := <-rpcCh:
+			switch rpcMsg.Msg {
+			// TODO: add more events here.
+			case "stop":
+				for _, proc := range rpcMsg.Args {
+					if err := stopProc(proc, nil); err != nil {
+						rpcMsg.ErrCh <- err
+						break
+					}
+				}
+				close(rpcMsg.ErrCh)
+			default:
+				panic("unimplemented rpc message type " + rpcMsg.Msg)
+			}
 		case err := <-errCh:
 			if exitOnError {
 				stopProcs(os.Interrupt)
 				return err
 			}
-		// TODO: add more events here.
 		case <-allProcsDone:
 			return stopProcs(os.Interrupt)
 		case sig := <-sc:
