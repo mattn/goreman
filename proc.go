@@ -96,6 +96,7 @@ func stopProcs(sig os.Signal) error {
 
 // spawn all procs.
 func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool) error {
+	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 
 	for proc := range procs {
