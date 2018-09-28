@@ -50,6 +50,7 @@ type procInfo struct {
 	cmdline    string
 	cmd        *exec.Cmd
 	port       uint
+	setPort    bool
 	colorIndex int
 
 	// True if we called stopProc to kill the process, in which case an
@@ -76,6 +77,8 @@ var basedir = flag.String("basedir", "", "base directory")
 // base of port numbers for app
 var baseport = flag.Uint("b", 5000, "base number of port")
 
+var setPorts = flag.Bool("set-ports", true, "False to avoid setting PORT env var for each subprocess")
+
 // true to exit the supervisor
 var exitOnError = flag.Bool("exit-on-error", false, "Exit goreman if a subprocess quits with a nonzero return code")
 
@@ -85,6 +88,7 @@ var re = regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)
 
 type config struct {
 	Procfile string `yaml:"procfile"`
+	// Port for RPC server
 	Port     uint   `yaml:"port"`
 	BaseDir  string `yaml:"basedir"`
 	BasePort uint   `yaml:"baseport"`
@@ -134,10 +138,14 @@ func readProcfile(cfg *config) error {
 				return "%" + s[1:] + "%"
 			})
 		}
-		p := &procInfo{proc: k, cmdline: v, port: cfg.BasePort, colorIndex: index}
+		p := &procInfo{proc: k, cmdline: v, colorIndex: index}
+		if *setPorts == true {
+			p.setPort = true
+			p.port = cfg.BasePort
+			cfg.BasePort += 100
+		}
 		p.cond = sync.NewCond(&p.mu)
 		procs[k] = p
-		cfg.BasePort += 100
 		if len(k) > maxProcNameLength {
 			maxProcNameLength = len(k)
 		}
