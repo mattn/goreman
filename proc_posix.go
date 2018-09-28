@@ -3,9 +3,7 @@
 package main
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 
 	"golang.org/x/sys/unix"
@@ -15,44 +13,8 @@ const sigint = unix.SIGINT
 const sigterm = unix.SIGTERM
 const sighup = unix.SIGHUP
 
-// spawn command that specified as proc.
-func spawnProc(proc string, errCh chan<- error) {
-	procObj := procs[proc]
-	logger := createLogger(proc, procObj.colorIndex)
-
-	cs := []string{"/bin/sh", "-c", procs[proc].cmdline}
-	cmd := exec.Command(cs[0], cs[1:]...)
-	cmd.Stdin = nil
-	cmd.Stdout = logger
-	cmd.Stderr = logger
-	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procObj.port))
-	cmd.SysProcAttr = &unix.SysProcAttr{Setpgid: true}
-
-	fmt.Fprintf(logger, "Starting %s on port %d\n", proc, procObj.port)
-	if err := cmd.Start(); err != nil {
-		select {
-		case errCh <- err:
-		default:
-		}
-		fmt.Fprintf(logger, "Failed to start %s: %s\n", proc, err)
-		return
-	}
-	procObj.cmd = cmd
-	procObj.stoppedBySupervisor = false
-	procObj.mu.Unlock()
-	err := cmd.Wait()
-	procObj.mu.Lock()
-	procObj.cond.Broadcast()
-	if err != nil && procObj.stoppedBySupervisor == false {
-		select {
-		case errCh <- err:
-		default:
-		}
-	}
-	procObj.waitErr = err
-	procObj.cmd = nil
-	fmt.Fprintf(logger, "Terminating %s\n", proc)
-}
+var cmdStart = []string{"/bin/sh", "-c"}
+var procAttrs = &unix.SysProcAttr{Setpgid: true}
 
 func terminateProc(proc string, signal os.Signal) error {
 	p := procs[proc].cmd.Process
