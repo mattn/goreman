@@ -201,6 +201,7 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	if err != nil {
 		return err
 	}
+	ctx, cancel := context.WithCancel(ctx)
 	if len(cfg.Args) > 1 {
 		tmp := make(map[string]*procInfo, len(cfg.Args[1:]))
 		maxProcNameLength = 0
@@ -219,19 +220,13 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	godotenv.Load()
 	rpcChan := make(chan *rpcMessage, 10)
 	go startServer(ctx, rpcChan, cfg.Port)
-	return startProcs(sig, rpcChan, cfg.ExitOnError)
+	procsErr := startProcs(sig, rpcChan, cfg.ExitOnError)
+	cancel() // If procs have returned/errored, cancel the RPC server.
+	return procsErr
 }
 
 func main() {
 	var err error
-	ctx, cancel := context.WithCancel(context.Background())
-	c := notifyCh()
-	go func() {
-		sig := <-c
-		fmt.Printf("caught signal %s, shutting down...\n", sig)
-		cancel()
-	}()
-
 	cfg := readConfig()
 
 	if cfg.BaseDir != "" {
@@ -267,7 +262,8 @@ func main() {
 		}
 		break
 	case "start":
-		err = start(ctx, c, cfg)
+		c := notifyCh()
+		err = start(context.Background(), c, cfg)
 		break
 	case "version":
 		fmt.Println(version)
