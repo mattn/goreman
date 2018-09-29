@@ -1,54 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 
 	"golang.org/x/sys/windows"
 )
 
-// spawn command that specified as proc.
-func spawnProc(proc string, errCh chan<- error) {
-	procObj := procs[proc]
-	logger := createLogger(proc, procObj.colorIndex)
-
-	cs := []string{"cmd", "/c", procObj.cmdline}
-	cmd := exec.Command(cs[0], cs[1:]...)
-	cmd.Stdin = nil
-	cmd.Stdout = logger
-	cmd.Stderr = logger
-	cmd.SysProcAttr = &windows.SysProcAttr{
-		CreationFlags: windows.CREATE_UNICODE_ENVIRONMENT | windows.CREATE_NEW_PROCESS_GROUP,
-	}
-	cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procObj.port))
-
-	fmt.Fprintf(logger, "Starting %s on port %d\n", proc, procObj.port)
-	if err := cmd.Start(); err != nil {
-		select {
-		case errCh <- err:
-		default:
-		}
-		fmt.Fprintf(logger, "Failed to start %s: %s\n", proc, err)
-		return
-	}
-	procObj.cmd = cmd
-	procObj.stoppedBySupervisor = false
-	procObj.mu.Unlock()
-	err := cmd.Wait()
-	procObj.mu.Lock()
-	procObj.cond.Broadcast()
-	if err != nil && procObj.stoppedBySupervisor == false {
-		select {
-		case errCh <- err:
-		default:
-		}
-	}
-	procObj.waitErr = err
-	procObj.cmd = nil
-	fmt.Fprintf(logger, "Terminating %s\n", proc)
+var cmdStart = []string{"cmd", "/c"}
+var procAttrs = &windows.SysProcAttr{
+	CreationFlags: windows.CREATE_UNICODE_ENVIRONMENT | windows.CREATE_NEW_PROCESS_GROUP,
 }
 
 func terminateProc(proc string, _ os.Signal) error {
