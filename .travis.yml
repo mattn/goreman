@@ -5,8 +5,8 @@ os: linux
 dist: trusty
 sudo: false
 
-before_script:
-  - go get ./...
+install:
+  - echo 'nothing to do'
 
 script:
   - go test ./...
