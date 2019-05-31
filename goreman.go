@@ -225,7 +225,7 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 		}
 		procs = tmp
 	}
-	godotenv.Load()
+	godotenv.Overload()
 	rpcChan := make(chan *rpcMessage, 10)
 	go startServer(ctx, rpcChan, cfg.Port)
 	procsErr := startProcs(sig, rpcChan, cfg.ExitOnError)
