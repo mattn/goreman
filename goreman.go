@@ -210,6 +210,9 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 		return err
 	}
 	ctx, cancel := context.WithCancel(ctx)
+	// Cancel the RPC server when procs have returned/errored, cancel the
+	// context anyway in case of early return.
+	defer cancel()
 	if len(cfg.Args) > 1 {
 		tmp := make(map[string]*procInfo, len(cfg.Args[1:]))
 		maxProcNameLength = 0
@@ -229,7 +232,6 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	rpcChan := make(chan *rpcMessage, 10)
 	go startServer(ctx, rpcChan, cfg.Port)
 	procsErr := startProcs(sig, rpcChan, cfg.ExitOnError)
-	cancel() // If procs have returned/errored, cancel the RPC server.
 	return procsErr
 }
 

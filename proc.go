@@ -178,5 +178,4 @@ func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool)
 			return stopProcs(sig)
 		}
 	}
-	return nil
 }
