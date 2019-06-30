@@ -82,6 +82,9 @@ var setPorts = flag.Bool("set-ports", true, "False to avoid setting PORT env var
 // true to exit the supervisor
 var exitOnError = flag.Bool("exit-on-error", false, "Exit goreman if a subprocess quits with a nonzero return code")
 
+// show timestamp in log
+var logTime = flag.Bool("logtime", true, "show timestamp in log")
+
 var maxProcNameLength = 0
 
 var re = regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)

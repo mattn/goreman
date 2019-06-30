@@ -61,10 +61,14 @@ func (v *buffers) WriteTo(w io.Writer) (n int64, err error) {
 // write any stored buffers, plus the given line, then empty out
 // the buffers.
 func (l *clogger) writeBuffers(line []byte) {
-	now := time.Now().Format("15:04:05")
 	mutex.Lock()
 	fmt.Fprintf(out, "\x1b[%dm", colors[l.idx])
-	fmt.Fprintf(out, "%s %*s | ", now, maxProcNameLength, l.proc)
+	if *logTime {
+		now := time.Now().Format("15:04:05")
+		fmt.Fprintf(out, "%s %*s | ", now, maxProcNameLength, l.proc)
+	} else {
+		fmt.Fprintf(out, "%*s | ", maxProcNameLength, l.proc)
+	}
 	fmt.Fprintf(out, "\x1b[m")
 	l.buffers = append(l.buffers, line)
 	l.buffers.WriteTo(out)
