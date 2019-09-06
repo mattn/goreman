@@ -16,8 +16,8 @@ const sighup = unix.SIGHUP
 var cmdStart = []string{"/bin/sh", "-c"}
 var procAttrs = &unix.SysProcAttr{Setpgid: true}
 
-func terminateProc(proc string, signal os.Signal) error {
-	p := procs[proc].cmd.Process
+func terminateProc(proc *procInfo, signal os.Signal) error {
+	p := proc.cmd.Process
 	if p == nil {
 		return nil
 	}

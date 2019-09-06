@@ -153,8 +153,8 @@ web4: sleep 10
 			time.Sleep(5 * time.Millisecond)
 			continue
 		}
-		proc, ok := procs["web2"]
-		if !ok {
+		proc := findProc("web2")
+		if proc == nil {
 			time.Sleep(5 * time.Millisecond)
 			continue
 		}

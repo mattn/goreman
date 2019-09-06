@@ -46,7 +46,7 @@ Options:
 
 // -- process information structure.
 type procInfo struct {
-	proc       string
+	name       string
 	cmdline    string
 	cmd        *exec.Cmd
 	port       uint
@@ -63,7 +63,7 @@ type procInfo struct {
 }
 
 // process informations named with proc.
-var procs map[string]*procInfo
+var procs []*procInfo
 
 // filename of Procfile.
 var procfile = flag.String("f", "Procfile", "proc file")
@@ -128,7 +128,7 @@ func readProcfile(cfg *config) error {
 	if err != nil {
 		return err
 	}
-	procs = map[string]*procInfo{}
+	procs = []*procInfo{}
 	index := 0
 	for _, line := range strings.Split(string(content), "\n") {
 		tokens := strings.SplitN(line, ":", 2)
@@ -141,14 +141,14 @@ func readProcfile(cfg *config) error {
 				return "%" + s[1:] + "%"
 			})
 		}
-		p := &procInfo{proc: k, cmdline: v, colorIndex: index}
+		proc := &procInfo{name: k, cmdline: v, colorIndex: index}
 		if *setPorts == true {
-			p.setPort = true
-			p.port = cfg.BasePort
+			proc.setPort = true
+			proc.port = cfg.BasePort
 			cfg.BasePort += 100
 		}
-		p.cond = sync.NewCond(&p.mu)
-		procs[k] = p
+		proc.cond = sync.NewCond(&proc.mu)
+		procs = append(procs, proc)
 		if len(k) > maxProcNameLength {
 			maxProcNameLength = len(k)
 		}
@@ -197,12 +197,21 @@ func check(cfg *config) error {
 	}
 	keys := make([]string, len(procs))
 	i := 0
-	for k := range procs {
-		keys[i] = k
+	for _, proc := range procs {
+		keys[i] = proc.name
 		i++
 	}
 	sort.Strings(keys)
 	fmt.Printf("valid procfile detected (%s)\n", strings.Join(keys, ", "))
+	return nil
+}
+
+func findProc(name string) *procInfo {
+	for _, proc := range procs {
+		if proc.name == name {
+			return proc
+		}
+	}
 	return nil
 }
 
@@ -217,14 +226,14 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	// context anyway in case of early return.
 	defer cancel()
 	if len(cfg.Args) > 1 {
-		tmp := make(map[string]*procInfo, len(cfg.Args[1:]))
+		tmp := make([]*procInfo, len(cfg.Args[1:]))
 		maxProcNameLength = 0
 		for _, v := range cfg.Args[1:] {
-			p, ok := procs[v]
-			if !ok {
+			proc := findProc(v)
+			if proc == nil {
 				return errors.New("unknown proc: " + v)
 			}
-			tmp[v] = p
+			tmp = append(tmp, proc)
 			if len(v) > maxProcNameLength {
 				maxProcNameLength = len(v)
 			}

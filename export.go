@@ -5,26 +5,18 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
 func exportUpstart(cfg *config, path string) error {
-	keys := make([]string, len(procs))
-	i := 0
-	for k := range procs {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	for i, n := range keys {
-		f, err := os.Create(filepath.Join(path, "app-"+n+".conf"))
+	for i, proc := range procs {
+		f, err := os.Create(filepath.Join(path, "app-"+proc.name+".conf"))
 		if err != nil {
 			return err
 		}
 
-		fmt.Fprintf(f, "start on starting app-%s\n", n)
-		fmt.Fprintf(f, "stop on stopping app-%s\n", n)
+		fmt.Fprintf(f, "start on starting app-%s\n", proc.name)
+		fmt.Fprintf(f, "stop on stopping app-%s\n", proc.name)
 		fmt.Fprintf(f, "respawn\n")
 		fmt.Fprintf(f, "\n")
 
@@ -58,7 +50,7 @@ func exportUpstart(cfg *config, path string) error {
 		fmt.Fprintf(f, "\n")
 		fmt.Fprintf(f, "chdir %s\n", filepath.ToSlash(filepath.Dir(procfile)))
 		fmt.Fprintf(f, "\n")
-		fmt.Fprintf(f, "exec %s\n", procs[n].cmdline)
+		fmt.Fprintf(f, "exec %s\n", proc.cmdline)
 
 		f.Close()
 	}
