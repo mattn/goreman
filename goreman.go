@@ -62,6 +62,8 @@ type procInfo struct {
 	waitErr error
 }
 
+var mu sync.Mutex
+
 // process informations named with proc.
 var procs []*procInfo
 
@@ -128,6 +130,9 @@ func readProcfile(cfg *config) error {
 	if err != nil {
 		return err
 	}
+	mu.Lock()
+	defer mu.Unlock()
+
 	procs = []*procInfo{}
 	index := 0
 	for _, line := range strings.Split(string(content), "\n") {
