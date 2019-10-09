@@ -149,7 +149,10 @@ web4: sleep 10
 		goremanStopped <- struct{}{}
 	}()
 	for {
-		if procs == nil {
+		mu.Lock()
+		isEmpty := procs == nil
+		mu.Unlock()
+		if isEmpty {
 			time.Sleep(5 * time.Millisecond)
 			continue
 		}

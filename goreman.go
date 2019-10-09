@@ -62,6 +62,8 @@ type procInfo struct {
 	waitErr error
 }
 
+var mu sync.Mutex
+
 // process informations named with proc.
 var procs []*procInfo
 
@@ -128,6 +130,9 @@ func readProcfile(cfg *config) error {
 	if err != nil {
 		return err
 	}
+	mu.Lock()
+	defer mu.Unlock()
+
 	procs = []*procInfo{}
 	index := 0
 	for _, line := range strings.Split(string(content), "\n") {
@@ -195,6 +200,10 @@ func check(cfg *config) error {
 	if err != nil {
 		return err
 	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	keys := make([]string, len(procs))
 	i := 0
 	for _, proc := range procs {
@@ -207,6 +216,9 @@ func check(cfg *config) error {
 }
 
 func findProc(name string) *procInfo {
+	mu.Lock()
+	defer mu.Unlock()
+
 	for _, proc := range procs {
 		if proc.name == name {
 			return proc
@@ -221,6 +233,7 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	if err != nil {
 		return err
 	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	// Cancel the RPC server when procs have returned/errored, cancel the
 	// context anyway in case of early return.
@@ -238,7 +251,9 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 				maxProcNameLength = len(v)
 			}
 		}
+		mu.Lock()
 		procs = tmp
+		mu.Unlock()
 	}
 	godotenv.Load()
 	rpcChan := make(chan *rpcMessage, 10)
