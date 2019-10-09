@@ -216,6 +216,9 @@ func check(cfg *config) error {
 }
 
 func findProc(name string) *procInfo {
+	mu.Lock()
+	defer mu.Unlock()
+
 	for _, proc := range procs {
 		if proc.name == name {
 			return proc
