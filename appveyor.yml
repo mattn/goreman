@@ -5,8 +5,8 @@ environment:
 install:
   - set PATH=c:\go\bin;%GOPATH%\bin;%PATH%;C:\MinGW\bin
   - rd c:\go /s /q
-  - appveyor DownloadFile https://storage.googleapis.com/golang/go1.11.windows-amd64.zip
-  - 7z x go1.11.windows-amd64.zip -oC:\ >nul
+  - appveyor DownloadFile https://storage.googleapis.com/golang/go1.13.windows-amd64.zip
+  - 7z x go1.13.windows-amd64.zip -oC:\ >nul
   - go version
   - go env
 build_script:
