@@ -12,7 +12,7 @@ import (
 
 type clogger struct {
 	idx     int
-	proc    string
+	name    string
 	writes  chan []byte
 	done    chan struct{}
 	timeout time.Duration // how long to wait before printing partial lines
@@ -65,9 +65,9 @@ func (l *clogger) writeBuffers(line []byte) {
 	fmt.Fprintf(out, "\x1b[%dm", colors[l.idx])
 	if *logTime {
 		now := time.Now().Format("15:04:05")
-		fmt.Fprintf(out, "%s %*s | ", now, maxProcNameLength, l.proc)
+		fmt.Fprintf(out, "%s %*s | ", now, maxProcNameLength, l.name)
 	} else {
-		fmt.Fprintf(out, "%*s | ", maxProcNameLength, l.proc)
+		fmt.Fprintf(out, "%*s | ", maxProcNameLength, l.name)
 	}
 	fmt.Fprintf(out, "\x1b[m")
 	l.buffers = append(l.buffers, line)
@@ -128,10 +128,10 @@ func (l *clogger) Write(p []byte) (int, error) {
 }
 
 // create logger instance.
-func createLogger(proc string, colorIndex int) *clogger {
+func createLogger(name string, colorIndex int) *clogger {
 	mutex.Lock()
 	defer mutex.Unlock()
-	l := &clogger{idx: colorIndex, proc: proc, writes: make(chan []byte), done: make(chan struct{}), timeout: 2 * time.Millisecond}
+	l := &clogger{idx: colorIndex, name: name, writes: make(chan []byte), done: make(chan struct{}), timeout: 2 * time.Millisecond}
 	go l.writeLines()
 	return l
 }

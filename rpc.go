@@ -61,8 +61,8 @@ func (r *Goreman) StopAll(args []string, ret *string) (err error) {
 			err = r.(error)
 		}
 	}()
-	for proc := range procs {
-		if err = stopProc(proc, nil); err != nil {
+	for _, proc := range procs {
+		if err = stopProc(proc.name, nil); err != nil {
 			break
 		}
 	}
@@ -91,8 +91,8 @@ func (r *Goreman) RestartAll(args []string, ret *string) (err error) {
 			err = r.(error)
 		}
 	}()
-	for proc := range procs {
-		if err = restartProc(proc); err != nil {
+	for _, proc := range procs {
+		if err = restartProc(proc.name); err != nil {
 			break
 		}
 	}
@@ -107,8 +107,8 @@ func (r *Goreman) List(args []string, ret *string) (err error) {
 		}
 	}()
 	*ret = ""
-	for proc := range procs {
-		*ret += proc + "\n"
+	for _, proc := range procs {
+		*ret += proc.name + "\n"
 	}
 	return err
 }
@@ -121,11 +121,11 @@ func (r *Goreman) Status(args []string, ret *string) (err error) {
 		}
 	}()
 	*ret = ""
-	for proc := range procs {
-		if procs[proc].cmd != nil {
-			*ret += "*" + proc + "\n"
+	for _, proc := range procs {
+		if proc.cmd != nil {
+			*ret += "*" + proc.name + "\n"
 		} else {
-			*ret += " " + proc + "\n"
+			*ret += " " + proc.name + "\n"
 		}
 	}
 	return err

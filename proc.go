@@ -10,64 +10,64 @@ import (
 )
 
 // spawnProc starts the specified proc, and returns any error from running it.
-func spawnProc(proc string, errCh chan<- error) {
-	procObj := procs[proc]
-	logger := createLogger(proc, procObj.colorIndex)
+func spawnProc(name string, errCh chan<- error) {
+	proc := findProc(name)
+	logger := createLogger(name, proc.colorIndex)
 
-	cs := append(cmdStart, procObj.cmdline)
+	cs := append(cmdStart, proc.cmdline)
 	cmd := exec.Command(cs[0], cs[1:]...)
 	cmd.Stdin = nil
 	cmd.Stdout = logger
 	cmd.Stderr = logger
 	cmd.SysProcAttr = procAttrs
 
-	if procObj.setPort {
-		cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", procObj.port))
-		fmt.Fprintf(logger, "Starting %s on port %d\n", proc, procObj.port)
+	if proc.setPort {
+		cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", proc.port))
+		fmt.Fprintf(logger, "Starting %s on port %d\n", name, proc.port)
 	}
 	if err := cmd.Start(); err != nil {
 		select {
 		case errCh <- err:
 		default:
 		}
-		fmt.Fprintf(logger, "Failed to start %s: %s\n", proc, err)
+		fmt.Fprintf(logger, "Failed to start %s: %s\n", name, err)
 		return
 	}
-	procObj.cmd = cmd
-	procObj.stoppedBySupervisor = false
-	procObj.mu.Unlock()
+	proc.cmd = cmd
+	proc.stoppedBySupervisor = false
+	proc.mu.Unlock()
 	err := cmd.Wait()
-	procObj.mu.Lock()
-	procObj.cond.Broadcast()
-	if err != nil && procObj.stoppedBySupervisor == false {
+	proc.mu.Lock()
+	proc.cond.Broadcast()
+	if err != nil && proc.stoppedBySupervisor == false {
 		select {
 		case errCh <- err:
 		default:
 		}
 	}
-	procObj.waitErr = err
-	procObj.cmd = nil
-	fmt.Fprintf(logger, "Terminating %s\n", proc)
+	proc.waitErr = err
+	proc.cmd = nil
+	fmt.Fprintf(logger, "Terminating %s\n", name)
 }
 
 // Stop the specified proc, issuing os.Kill if it does not terminate within 10
 // seconds. If signal is nil, os.Interrupt is used.
-func stopProc(proc string, signal os.Signal) error {
+func stopProc(name string, signal os.Signal) error {
 	if signal == nil {
 		signal = os.Interrupt
 	}
-	p, ok := procs[proc]
-	if !ok || p == nil {
-		return errors.New("unknown proc: " + proc)
+	proc := findProc(name)
+	if proc == nil {
+		return errors.New("unknown proc: " + name)
 	}
 
-	p.mu.Lock()
-	defer p.mu.Unlock()
+	proc.mu.Lock()
+	defer proc.mu.Unlock()
 
-	if p.cmd == nil {
+	if proc.cmd == nil {
 		return nil
 	}
-	p.stoppedBySupervisor = true
+	proc.stoppedBySupervisor = true
 
 	err := terminateProc(proc, signal)
 	if err != nil {
@@ -75,27 +75,27 @@ func stopProc(proc string, signal os.Signal) error {
 	}
 
 	timeout := time.AfterFunc(10*time.Second, func() {
-		p.mu.Lock()
-		defer p.mu.Unlock()
-		if p, ok := procs[proc]; ok && p.cmd != nil {
-			err = killProc(p.cmd.Process)
+		proc.mu.Lock()
+		defer proc.mu.Unlock()
+		if proc.cmd != nil {
+			err = killProc(proc.cmd.Process)
 		}
 	})
-	p.cond.Wait()
+	proc.cond.Wait()
 	timeout.Stop()
 	return err
 }
 
 // start specified proc. if proc is started already, return nil.
-func startProc(proc string, wg *sync.WaitGroup, errCh chan<- error) error {
-	p, ok := procs[proc]
-	if !ok || p == nil {
-		return errors.New("unknown proc: " + proc)
+func startProc(name string, wg *sync.WaitGroup, errCh chan<- error) error {
+	proc := findProc(name)
+	if proc == nil {
+		return errors.New("unknown name: " + name)
 	}
 
-	p.mu.Lock()
-	if procs[proc].cmd != nil {
-		p.mu.Unlock()
+	proc.mu.Lock()
+	if proc.cmd != nil {
+		proc.mu.Unlock()
 		return nil
 	}
 
@@ -103,24 +103,22 @@ func startProc(proc string, wg *sync.WaitGroup, errCh chan<- error) error {
 		wg.Add(1)
 	}
 	go func() {
-		spawnProc(proc, errCh)
+		spawnProc(name, errCh)
 		if wg != nil {
 			wg.Done()
 		}
-		p.mu.Unlock()
+		proc.mu.Unlock()
 	}()
 	return nil
 }
 
 // restart specified proc.
-func restartProc(proc string) error {
-	p, ok := procs[proc]
-	if !ok || p == nil {
-		return errors.New("unknown proc: " + proc)
+func restartProc(name string) error {
+	err := stopProc(name, nil)
+	if err != nil {
+		return err
 	}
-
-	stopProc(proc, nil)
-	return startProc(proc, nil, nil)
+	return startProc(name, nil, nil)
 }
 
 // stopProcs attempts to stop every running process and returns any non-nil
@@ -128,8 +126,8 @@ func restartProc(proc string) error {
 // opportunity to stop.
 func stopProcs(sig os.Signal) error {
 	var err error
-	for proc := range procs {
-		stopErr := stopProc(proc, sig)
+	for _, proc := range procs {
+		stopErr := stopProc(proc.name, sig)
 		if stopErr != nil {
 			err = stopErr
 		}
@@ -142,8 +140,8 @@ func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool)
 	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 
-	for proc := range procs {
-		startProc(proc, &wg, errCh)
+	for _, proc := range procs {
+		startProc(proc.name, &wg, errCh)
 	}
 
 	allProcsDone := make(chan struct{}, 1)
