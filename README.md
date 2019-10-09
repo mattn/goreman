@@ -17,7 +17,7 @@ Any signals are forwarded to the processes.
 
 ## Example
 
-See `eg` directory
+See `_example` directory
 
 ## License
 
