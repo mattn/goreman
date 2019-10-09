@@ -200,6 +200,10 @@ func check(cfg *config) error {
 	if err != nil {
 		return err
 	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	keys := make([]string, len(procs))
 	i := 0
 	for _, proc := range procs {
@@ -212,6 +216,9 @@ func check(cfg *config) error {
 }
 
 func findProc(name string) *procInfo {
+	mu.Lock()
+	defer mu.Unlock()
+
 	for _, proc := range procs {
 		if proc.name == name {
 			return proc
@@ -226,6 +233,9 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	if err != nil {
 		return err
 	}
+	mu.Lock()
+	defer mu.Unlock()
+
 	ctx, cancel := context.WithCancel(ctx)
 	// Cancel the RPC server when procs have returned/errored, cancel the
 	// context anyway in case of early return.
