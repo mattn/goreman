@@ -1,0 +1,66 @@
+name: release
+
+on:
+  create:
+    tags:
+      - v*.*.*
+
+jobs:
+  release:
+    runs-on: ubuntu-18.04
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v1
+      -
+        name: Prepare
+        id: prepare
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          MINOR=${TAG%.*}
+          MAJOR=${MINOR%.*}
+          echo ::set-output name=tag_name::${TAG}
+          echo ::set-output name=minor_tag::${MINOR}
+          echo ::set-output name=major_tag::${MAJOR}
+          echo ::set-output name=major_exists::$(git show-ref origin/releases/${MAJOR})
+      -
+        name: Set up Git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+      -
+        name: Checkout releases/${{ steps.prepare.outputs.major_tag }} branch
+        run: |
+          git checkout -B releases/${{ steps.prepare.outputs.major_tag }}
+          if [ -n "${{ steps.prepare.outputs.major_exists }}" ]; then
+            git branch --set-upstream-to=origin/releases/${{ steps.prepare.outputs.major_tag }} releases/${{ steps.prepare.outputs.major_tag }}
+          fi
+      -
+        name: NPM production deps
+        run: |
+          rm -rf node_modules
+          sed -i '/node_modules/d' .gitignore
+          npm install --production
+      -
+        name: Commit and push changes
+        run: |
+          git add --all
+          git status --short -uno
+          git commit -m 'Release ${{ steps.prepare.outputs.tag_name }}'
+          git show --stat-count=10 HEAD
+          git push -f origin releases/${{ steps.prepare.outputs.major_tag }}
+      -
+        name: Update ${{ steps.prepare.outputs.minor_tag }} tag
+        run: |
+          git push origin :refs/tags/${{ steps.prepare.outputs.minor_tag }}
+          git tag -fa ${{ steps.prepare.outputs.minor_tag }} -m "Release ${{ steps.prepare.outputs.tag_name }}"
+          git push origin ${{ steps.prepare.outputs.minor_tag }}
+      -
+        name: Update ${{ steps.prepare.outputs.major_tag }} tag
+        run: |
+          git push origin :refs/tags/${{ steps.prepare.outputs.major_tag }}
+          git tag -fa ${{ steps.prepare.outputs.major_tag }} -m "Release ${{ steps.prepare.outputs.tag_name }}"
+          git push origin ${{ steps.prepare.outputs.major_tag }}
