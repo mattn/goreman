@@ -239,7 +239,7 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	// context anyway in case of early return.
 	defer cancel()
 	if len(cfg.Args) > 1 {
-		tmp := make([]*procInfo, len(cfg.Args[1:]))
+		tmp := make([]*procInfo, 0, len(cfg.Args[1:]))
 		maxProcNameLength = 0
 		for _, v := range cfg.Args[1:] {
 			proc := findProc(v)
