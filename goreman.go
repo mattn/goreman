@@ -278,10 +278,8 @@ func main() {
 	switch cmd {
 	case "check":
 		err = check(cfg)
-		break
 	case "help":
 		usage()
-		break
 	case "run":
 		if len(cfg.Args) >= 2 {
 			cmd, args := cfg.Args[1], cfg.Args[2:]
@@ -289,7 +287,6 @@ func main() {
 		} else {
 			usage()
 		}
-		break
 	case "export":
 		if len(cfg.Args) == 3 {
 			format, path := cfg.Args[1], cfg.Args[2]
@@ -297,14 +294,11 @@ func main() {
 		} else {
 			usage()
 		}
-		break
 	case "start":
 		c := notifyCh()
 		err = start(context.Background(), c, cfg)
-		break
 	case "version":
 		fmt.Println(version)
-		break
 	default:
 		usage()
 	}
