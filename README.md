@@ -23,6 +23,15 @@ See `_example` directory
 
 MIT
 
+## Design
+
+The main goroutine loads Procfile and starts each command in the file. Afterwards, it is driven by the following two kinds of events, and then take proper action against the managed processes.
+
+1. It receives a signal, which could be one of SIGINT,SIGTERM and SIGHUP;
+2. It receives a RPC call, which is triggered by the command "goreman run COMMAND [PROCESS...]".
+
+![design](images/design.png)
+
 ## Authors
 
 Yasuhiro Matsumoto (a.k.a mattn)
