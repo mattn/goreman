@@ -19,7 +19,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "0.2.1"
+// version is the git tag at the time of build and is used to denote the
+// binary's current version. This value is supplied as an ldflag at compile
+// time by goreleaser (see .goreleaser.yml).
+var version = "dev"
 
 func usage() {
 	fmt.Fprint(os.Stderr, `Tasks:
