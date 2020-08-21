@@ -22,7 +22,11 @@ import (
 // version is the git tag at the time of build and is used to denote the
 // binary's current version. This value is supplied as an ldflag at compile
 // time by goreleaser (see .goreleaser.yml).
-var version = "dev"
+const (
+	name     = "goreman"
+	version  = "dev"
+	revision = "HEAD"
+)
 
 func usage() {
 	fmt.Fprint(os.Stderr, `Tasks:
@@ -265,6 +269,11 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	return procsErr
 }
 
+func showVersion() {
+	fmt.Fprintf(os.Stdout, "%s\n", version)
+	os.Exit(0)
+}
+
 func main() {
 	var err error
 	cfg := readConfig()
@@ -301,7 +310,7 @@ func main() {
 		c := notifyCh()
 		err = start(context.Background(), c, cfg)
 	case "version":
-		fmt.Println(version)
+		showVersion()
 	default:
 		usage()
 	}
