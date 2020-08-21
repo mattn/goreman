@@ -1,5 +1,7 @@
 builds:
   - binary: goreman
+    ldflags:
+      - -X main.version={{.Version}}
     goos:
       - windows
       - darwin
