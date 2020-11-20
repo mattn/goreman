@@ -145,10 +145,12 @@ func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool)
 	}
 
 	allProcsDone := make(chan struct{}, 1)
-	go func() {
-		wg.Wait()
-		allProcsDone <- struct{}{}
-	}()
+	if *exitOnStop {
+		go func() {
+			wg.Wait()
+			allProcsDone <- struct{}{}
+		}()
+	}
 	for {
 		select {
 		case rpcMsg := <-rpcCh:
