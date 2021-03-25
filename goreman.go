@@ -63,6 +63,8 @@ type procInfo struct {
 	// True if we called stopProc to kill the process, in which case an
 	// *os.ExitError is not the fault of the subprocess
 	stoppedBySupervisor bool
+	// True if we should restart the process on non-zero exit code
+	restartOnError bool
 
 	mu      sync.Mutex
 	cond    *sync.Cond
@@ -91,6 +93,9 @@ var setPorts = flag.Bool("set-ports", true, "False to avoid setting PORT env var
 // true to exit the supervisor
 var exitOnError = flag.Bool("exit-on-error", false, "Exit goreman if a subprocess quits with a nonzero return code")
 
+// true to keep restarting subprocess on nonzero exit code
+var restartOnError = flag.Bool("restart-on-error", false, "Restart subprocess if a subprocess quits with a nonzero return code")
+
 // show timestamp in log
 var logTime = flag.Bool("logtime", true, "show timestamp in log")
 
@@ -107,6 +112,8 @@ type config struct {
 	Args     []string
 	// If true, exit the supervisor process if a subprocess exits with an error.
 	ExitOnError bool `yaml:"exit_on_error"`
+	// If true, restart the subprocess if a subprocess exits with an error.
+	RestartOnError bool `yaml:"restart_on_error`
 }
 
 func readConfig() *config {
@@ -122,6 +129,7 @@ func readConfig() *config {
 	cfg.BaseDir = *basedir
 	cfg.BasePort = *baseport
 	cfg.ExitOnError = *exitOnError
+	cfg.RestartOnError = *restartOnError
 	cfg.Args = flag.Args()
 
 	b, err := ioutil.ReadFile(".goreman")
@@ -153,7 +161,7 @@ func readProcfile(cfg *config) error {
 				return "%" + s[1:] + "%"
 			})
 		}
-		proc := &procInfo{name: k, cmdline: v, colorIndex: index}
+		proc := &procInfo{name: k, cmdline: v, colorIndex: index, restartOnError: cfg.RestartOnError}
 		if *setPorts == true {
 			proc.setPort = true
 			proc.port = cfg.BasePort
