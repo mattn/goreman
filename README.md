@@ -13,11 +13,11 @@ https://github.com/ddollar/foreman
     goreman start
 
 Will start all commands defined in the `Procfile` and display their outputs.
-Any signals are forwarded to the processes.
+Any signals are forwarded to each process.
 
 ## Example
 
-See `_example` directory
+See [`_example`](_example/) directory
 
 ## License
 
@@ -25,10 +25,10 @@ MIT
 
 ## Design
 
-The main goroutine loads Procfile and starts each command in the file. Afterwards, it is driven by the following two kinds of events, and then take proper action against the managed processes.
+The main goroutine loads `Procfile` and starts each command in the file. Afterwards, it is driven by the following two kinds of events, and then take proper action against the managed processes.
 
-1. It receives a signal, which could be one of SIGINT,SIGTERM and SIGHUP;
-2. It receives a RPC call, which is triggered by the command "goreman run COMMAND [PROCESS...]".
+1. It receives a signal, which could be one of `SIGINT`, `SIGTERM`, and `SIGHUP`;
+2. It receives an RPC call, which is triggered by the command `goreman run COMMAND [PROCESS...]`.
 
 ![design](images/design.png)
 
