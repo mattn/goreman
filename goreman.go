@@ -91,6 +91,9 @@ var setPorts = flag.Bool("set-ports", true, "False to avoid setting PORT env var
 // true to exit the supervisor
 var exitOnError = flag.Bool("exit-on-error", false, "Exit goreman if a subprocess quits with a nonzero return code")
 
+// true to exit the supervisor when all processes stop
+var exitOnStop = flag.Bool("exit-on-stop", true, "Exit goreman if all subprocesses stop")
+
 // show timestamp in log
 var logTime = flag.Bool("logtime", true, "show timestamp in log")
 
