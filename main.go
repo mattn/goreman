@@ -167,10 +167,7 @@ func readProcfile(cfg *config) error {
 		if len(k) > maxProcNameLength {
 			maxProcNameLength = len(k)
 		}
-		index++
-		if index >= len(colors) {
-			index = 0
-		}
+		index = (index + 1) % len(colors)
 	}
 	if len(procs) == 0 {
 		return errors.New("no valid entry")
