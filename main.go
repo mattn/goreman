@@ -24,7 +24,7 @@ import (
 // time by goreleaser (see .goreleaser.yml).
 const (
 	name     = "goreman"
-	version  = "0.3.8"
+	version  = "0.3.9"
 	revision = "HEAD"
 )
 
