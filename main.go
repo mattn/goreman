@@ -157,7 +157,7 @@ func readProcfile(cfg *config) error {
 			})
 		}
 		proc := &procInfo{name: k, cmdline: v, colorIndex: index}
-		if *setPorts == true {
+		if *setPorts {
 			proc.setPort = true
 			proc.port = cfg.BasePort
 			cfg.BasePort += 100
