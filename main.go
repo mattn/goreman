@@ -16,7 +16,7 @@ import (
 	"sync"
 
 	"github.com/joho/godotenv"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // version is the git tag at the time of build and is used to denote the
@@ -24,7 +24,7 @@ import (
 // time by goreleaser (see .goreleaser.yml).
 const (
 	name     = "goreman"
-	version  = "0.3.10"
+	version  = "0.3.11"
 	revision = "HEAD"
 )
 
