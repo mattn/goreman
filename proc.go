@@ -39,7 +39,7 @@ func spawnProc(name string, errCh chan<- error) {
 	err := cmd.Wait()
 	proc.mu.Lock()
 	proc.cond.Broadcast()
-	if err != nil && proc.stoppedBySupervisor == false {
+	if err != nil && !proc.stoppedBySupervisor {
 		select {
 		case errCh <- err:
 		default:
