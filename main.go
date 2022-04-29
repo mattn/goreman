@@ -80,6 +80,8 @@ var procfile = flag.String("f", "Procfile", "proc file")
 // rpc port number.
 var port = flag.Uint("p", defaultPort(), "port")
 
+var startRPCServer = flag.Bool("rpc-server", true, "Start an RPC server listening on "+defaultAddr())
+
 // base directory
 var basedir = flag.String("basedir", "", "base directory")
 
@@ -264,7 +266,9 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 	}
 	godotenv.Load()
 	rpcChan := make(chan *rpcMessage, 10)
-	go startServer(ctx, rpcChan, cfg.Port)
+	if *startRPCServer {
+		go startServer(ctx, rpcChan, cfg.Port)
+	}
 	procsErr := startProcs(sig, rpcChan, cfg.ExitOnError)
 	return procsErr
 }
