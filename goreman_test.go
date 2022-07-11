@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,13 +22,13 @@ func TestMain(m *testing.M) {
 		}
 
 		code := `package main;import ("os";"strconv";"time");func main(){i,_:=strconv.ParseFloat(os.Args[1]);time.Sleep(time.Duration(i)*time.Second)}`
-		dir, err := ioutil.TempDir("", "goreman-test")
+		dir, err := os.MkdirTemp("", "goreman-test")
 		if err != nil {
 			panic(err)
 		}
 		sleep = filepath.Join(dir, "sleep.exe")
 		src := filepath.Join(dir, "sleep.go")
-		err = ioutil.WriteFile(src, []byte(code), 0644)
+		err = os.WriteFile(src, []byte(code), 0644)
 		if err != nil {
 			panic(err)
 		}
@@ -51,7 +50,7 @@ func TestMain(m *testing.M) {
 
 func startGoreman(ctx context.Context, t *testing.T, ch <-chan os.Signal, file []byte) error {
 	t.Helper()
-	f, err := ioutil.TempFile("", "")
+	f, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}

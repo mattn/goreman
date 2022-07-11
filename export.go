@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,7 +24,7 @@ func exportUpstart(cfg *config, path string) error {
 		if err != nil {
 			return err
 		}
-		b, err := ioutil.ReadFile(filepath.Join(filepath.Dir(procfile), ".env"))
+		b, err := os.ReadFile(filepath.Join(filepath.Dir(procfile), ".env"))
 		if err == nil {
 			for _, line := range strings.Split(string(b), "\n") {
 				token := strings.SplitN(line, "=", 2)
