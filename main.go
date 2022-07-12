@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -129,7 +128,7 @@ func readConfig() *config {
 	cfg.ExitOnError = *exitOnError
 	cfg.Args = flag.Args()
 
-	b, err := ioutil.ReadFile(".goreman")
+	b, err := os.ReadFile(".goreman")
 	if err == nil {
 		yaml.Unmarshal(b, &cfg)
 	}
@@ -138,7 +137,7 @@ func readConfig() *config {
 
 // read Procfile and parse it.
 func readProcfile(cfg *config) error {
-	content, err := ioutil.ReadFile(cfg.Procfile)
+	content, err := os.ReadFile(cfg.Procfile)
 	if err != nil {
 		return err
 	}
