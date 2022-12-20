@@ -9,4 +9,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/mattn/go-isatty v0.0.14 // indirect
+require (
+	github.com/go-kit/log v0.2.1 // indirect
+	github.com/go-logfmt/logfmt v0.5.1 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
+)

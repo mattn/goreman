@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/sys/unix"
 	"os"
 	"os/exec"
+	"os/signal"
 	"sync"
 	"time"
 )
@@ -16,6 +18,7 @@ func spawnProc(name string, errCh chan<- error) {
 
 	cs := append(cmdStart, proc.cmdline)
 	cmd := exec.Command(cs[0], cs[1:]...)
+	fmt.Println("cmd", cmd.String())
 	cmd.Stdin = nil
 	cmd.Stdout = logger
 	cmd.Stderr = logger
@@ -50,8 +53,8 @@ func spawnProc(name string, errCh chan<- error) {
 	fmt.Fprintf(logger, "Terminating %s\n", name)
 }
 
-// Stop the specified proc, issuing os.Kill if it does not terminate within 10
-// seconds. If signal is nil, os.Interrupt is used.
+// stopProc is stopping the specified process. Issuing os.Kill if it does not terminate within 10 seconds. If signal is
+// nil, os.Interrupt is used.
 func stopProc(name string, signal os.Signal) error {
 	if signal == nil {
 		signal = os.Interrupt
@@ -112,15 +115,6 @@ func startProc(name string, wg *sync.WaitGroup, errCh chan<- error) error {
 	return nil
 }
 
-// restart specified proc.
-func restartProc(name string) error {
-	err := stopProc(name, nil)
-	if err != nil {
-		return err
-	}
-	return startProc(name, nil, nil)
-}
-
 // stopProcs attempts to stop every running process and returns any non-nil
 // error, if one exists. stopProcs will wait until all procs have had an
 // opportunity to stop.
@@ -136,7 +130,7 @@ func stopProcs(sig os.Signal) error {
 }
 
 // spawn all procs.
-func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool) error {
+func startProcs(sc <-chan os.Signal, exitOnError bool) error {
 	var wg sync.WaitGroup
 	errCh := make(chan error, 1)
 
@@ -153,20 +147,6 @@ func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool)
 	}
 	for {
 		select {
-		case rpcMsg := <-rpcCh:
-			switch rpcMsg.Msg {
-			// TODO: add more events here.
-			case "stop":
-				for _, proc := range rpcMsg.Args {
-					if err := stopProc(proc, nil); err != nil {
-						rpcMsg.ErrCh <- err
-						break
-					}
-				}
-				close(rpcMsg.ErrCh)
-			default:
-				panic("unimplemented rpc message type " + rpcMsg.Msg)
-			}
 		case err := <-errCh:
 			if exitOnError {
 				stopProcs(os.Interrupt)
@@ -178,4 +158,46 @@ func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool)
 			return stopProcs(sig)
 		}
 	}
+}
+
+const sigint = unix.SIGINT
+const sigterm = unix.SIGTERM
+const sighup = unix.SIGHUP
+
+var cmdStart = []string{"/bin/sh", "-c"}
+var procAttrs = &unix.SysProcAttr{Setpgid: true}
+
+func terminateProc(proc *procInfo, signal os.Signal) error {
+	p := proc.cmd.Process
+	if p == nil {
+		return nil
+	}
+
+	pgid, err := unix.Getpgid(p.Pid)
+	if err != nil {
+		return err
+	}
+
+	// use pgid, ref: http://unix.stackexchange.com/questions/14815/process-descendants
+	pid := p.Pid
+	if pgid == p.Pid {
+		pid = -1 * pid
+	}
+
+	target, err := os.FindProcess(pid)
+	if err != nil {
+		return err
+	}
+	return target.Signal(signal)
+}
+
+// killProc kills the proc with pid pid, as well as its children.
+func killProc(process *os.Process) error {
+	return unix.Kill(-1*process.Pid, unix.SIGKILL)
+}
+
+func notifyCh() <-chan os.Signal {
+	sc := make(chan os.Signal, 10)
+	signal.Notify(sc, sigterm, sigint, sighup)
+	return sc
 }

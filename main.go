@@ -5,59 +5,27 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
 	"os/exec"
 	"regexp"
-	"runtime"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
+	"text/template"
+	"text/template/parse"
 
 	"github.com/joho/godotenv"
-	"gopkg.in/yaml.v3"
 )
-
-// version is the git tag at the time of build and is used to denote the
-// binary's current version. This value is supplied as an ldflag at compile
-// time by goreleaser (see .goreleaser.yml).
-const (
-	name     = "goreman"
-	version  = "0.3.13"
-	revision = "HEAD"
-)
-
-func usage() {
-	fmt.Fprint(os.Stderr, `Tasks:
-  goreman check                      # Show entries in Procfile
-  goreman help [TASK]                # Show this help
-  goreman export [FORMAT] [LOCATION] # Export the apps to another process
-                                       (upstart)
-  goreman run COMMAND [PROCESS...]   # Run a command
-                                       start
-                                       stop
-                                       stop-all
-                                       restart
-                                       restart-all
-                                       list
-                                       status
-  goreman start [PROCESS]            # Start the application
-  goreman version                    # Display Goreman version
-
-Options:
-`)
-	flag.PrintDefaults()
-	os.Exit(0)
-}
 
 // -- process information structure.
 type procInfo struct {
-	name       string
-	cmdline    string
-	cmd        *exec.Cmd
-	port       uint
-	setPort    bool
-	colorIndex int
+	name        string
+	environment string
+	cmdline     string
+	cmd         *exec.Cmd
+	port        uint
+	setPort     bool
+	colorIndex  int
 
 	// True if we called stopProc to kill the process, in which case an
 	// *os.ExitError is not the fault of the subprocess
@@ -75,11 +43,6 @@ var procs []*procInfo
 
 // filename of Procfile.
 var procfile = flag.String("f", "Procfile", "proc file")
-
-// rpc port number.
-var port = flag.Uint("p", defaultPort(), "port")
-
-var startRPCServer = flag.Bool("rpc-server", true, "Start an RPC server listening on "+defaultAddr())
 
 // base directory
 var basedir = flag.String("basedir", "", "base directory")
@@ -104,8 +67,6 @@ var re = regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)
 
 type config struct {
 	Procfile string `yaml:"procfile"`
-	// Port for RPC server
-	Port     uint   `yaml:"port"`
 	BaseDir  string `yaml:"basedir"`
 	BasePort uint   `yaml:"baseport"`
 	Args     []string
@@ -113,113 +74,63 @@ type config struct {
 	ExitOnError bool `yaml:"exit_on_error"`
 }
 
+// Service is a single configuration option for a service we want to run
+type Service struct {
+	Command     string `yaml:"command"`
+	Environment string `yaml:"environment"`
+	Enable      bool   `yaml:"enable"`
+	// Variables are string mappings, the key can be used as $KEY in the "Command" string. It will be interpolated when
+	// it is used to spawn the proc
+	Variables []map[string]string `yaml:"variables"`
+}
+
+// Configuration holds a configuration, the key of the map is the name of the configuration. This is a string defined by
+// the user to differentiate the various services started.
+type Configuration map[string]Service
+
 func readConfig() *config {
 	var cfg config
 
 	flag.Parse()
-	if flag.NArg() == 0 {
-		usage()
-	}
 
 	cfg.Procfile = *procfile
-	cfg.Port = *port
 	cfg.BaseDir = *basedir
 	cfg.BasePort = *baseport
 	cfg.ExitOnError = *exitOnError
 	cfg.Args = flag.Args()
-
-	b, err := os.ReadFile(".goreman")
-	if err == nil {
-		yaml.Unmarshal(b, &cfg)
-	}
 	return &cfg
 }
 
 // read Procfile and parse it.
-func readProcfile(cfg *config) error {
-	content, err := os.ReadFile(cfg.Procfile)
-	if err != nil {
-		return err
-	}
+func readProcfile(cfg Configuration) error {
 	mu.Lock()
 	defer mu.Unlock()
 
 	procs = []*procInfo{}
 	index := 0
-	for _, line := range strings.Split(string(content), "\n") {
-		tokens := strings.SplitN(line, ":", 2)
-		if len(tokens) != 2 || tokens[0][0] == '#' {
+	for key, service := range cfg {
+		// Skip all the services that don't pass the validation (Not enabled, erroneous configuration etc.)
+		if !service.Valid() {
 			continue
 		}
-		k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
-		if runtime.GOOS == "windows" {
-			v = re.ReplaceAllStringFunc(v, func(s string) string {
-				return "%" + s[1:] + "%"
-			})
+		// Create proc based on configuration
+		cmd, err := service.InterpolatedCommand()
+		if err != nil {
+			return err
 		}
-		proc := &procInfo{name: k, cmdline: v, colorIndex: index}
-		if *setPorts {
-			proc.setPort = true
-			proc.port = cfg.BasePort
-			cfg.BasePort += 100
+		proc := &procInfo{
+			name:        fmt.Sprintf("%s-%s", key, service.Environment),
+			environment: service.Environment,
+			cmdline:     cmd,
+			colorIndex:  index,
 		}
 		proc.cond = sync.NewCond(&proc.mu)
 		procs = append(procs, proc)
-		if len(k) > maxProcNameLength {
-			maxProcNameLength = len(k)
-		}
 		index = (index + 1) % len(colors)
 	}
 	if len(procs) == 0 {
-		return errors.New("no valid entry")
+		return errors.New("no valid service entry in configuration file")
 	}
-	return nil
-}
-
-func defaultServer(serverPort uint) string {
-	if s, ok := os.LookupEnv("GOREMAN_RPC_SERVER"); ok {
-		return s
-	}
-	return fmt.Sprintf("127.0.0.1:%d", defaultPort())
-}
-
-func defaultAddr() string {
-	if s, ok := os.LookupEnv("GOREMAN_RPC_ADDR"); ok {
-		return s
-	}
-	return "0.0.0.0"
-}
-
-// default port
-func defaultPort() uint {
-	s := os.Getenv("GOREMAN_RPC_PORT")
-	if s != "" {
-		i, err := strconv.Atoi(s)
-		if err == nil {
-			return uint(i)
-		}
-	}
-	return 8555
-}
-
-// command: check. show Procfile entries.
-func check(cfg *config) error {
-	err := readProcfile(cfg)
-	if err != nil {
-		return err
-	}
-
-	mu.Lock()
-	defer mu.Unlock()
-
-	keys := make([]string, len(procs))
-	i := 0
-	for _, proc := range procs {
-		keys[i] = proc.name
-		i++
-	}
-	sort.Strings(keys)
-	fmt.Printf("valid procfile detected (%s)\n", strings.Join(keys, ", "))
 	return nil
 }
 
@@ -235,9 +146,147 @@ func findProc(name string) *procInfo {
 	return nil
 }
 
+func (s Service) InterpolatedCommand() (string, error) {
+	var finalCommand string
+	tmpl, err := template.New("command").Parse(s.Command)
+	if err != nil {
+		return "", err
+	}
+
+	// Replace variables in command string if variables exist, otherwise we just return the original command
+	variables := ListTemplateFields(tmpl)
+	if len(s.Variables) > 0 {
+		for _, val := range s.Variables {
+			for _, val := range val {
+				for _, variable := range variables {
+					if strings.Contains(s.Command, variable) {
+						finalCommand = strings.Replace(s.Command, variable, val, -1)
+					}
+				}
+			}
+		}
+		return finalCommand, nil
+	}
+	return s.Command, nil
+}
+
+// Valid returns true if a service is enabled and has all the required values set
+func (s Service) Valid() bool {
+	// Fail early if the service is not enabled
+	if !s.Enable {
+		return false
+	}
+
+	vars, err := extractVariables(s.Command)
+	if err != nil {
+		return false
+	}
+
+	// Fail early if different counts
+	if len(vars) != len(s.Variables) {
+		return false
+	}
+
+	vm := make(map[string]struct{})
+	for _, v := range vars {
+		if _, ok := vm[v]; !ok {
+			vm[v] = struct{}{}
+		}
+	}
+	for _, variable := range s.Variables {
+		for key, _ := range variable {
+			if val, ok := vm[key]; ok {
+				if vm[key] != val {
+					return false
+				}
+			} else {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// extractVariables parses a command template and returns the Go template variables that were used
+func extractVariables(command string) ([]string, error) {
+	tmpl, err := template.New("command").Parse(command)
+	if err != nil {
+		return nil, err
+	}
+	variables := ListTemplateFields(tmpl)
+	for i, _ := range variables {
+		variables[i] = strings.Replace(variables[i], "{{", "", -1)
+		variables[i] = strings.Replace(variables[i], "}}", "", -1)
+		variables[i] = strings.Replace(variables[i], ".", "", -1)
+		variables[i] = strings.ToLower(variables[i])
+	}
+	return variables, nil
+}
+
+// ListTemplateFields lists the fields used in a template. Sourced and adapted from: https://stackoverflow.com/a/40584967
+func ListTemplateFields(t *template.Template) []string {
+	return listNodeFields(t.Tree.Root, nil)
+}
+
+// listNodeFields iterates over the parsed tree and extracts fields
+func listNodeFields(node parse.Node, res []string) []string {
+	//fmt.Println("p", node.String())
+	//fmt.Println("p", node.Type())
+	// Only looking at fields, needs to be adapted if further template entities should be supported
+	//if node.Type() == parse.NodeField {
+	//	res = append(res, node.String())
+	//}
+
+	if node.Type() == parse.NodeAction {
+		res = append(res, node.String())
+	}
+
+	if ln, ok := node.(*parse.ListNode); ok {
+		for _, n := range ln.Nodes {
+			res = listNodeFields(n, res)
+		}
+	}
+	return res
+}
+
+func (c Configuration) InterpolatedCommands() []string {
+	var commands []string
+	for _, option := range c {
+		var finalCommand string
+		// Replace variables in command string if variables exist, otherwise we just return the original command
+		if len(option.Variables) > 0 {
+			for _, val := range option.Variables {
+				for key, val := range val {
+					if strings.Contains(option.Command, "$"+strings.ToUpper(key)) {
+						finalCommand = strings.Replace(option.Command, "$"+strings.ToUpper(key), val, -1)
+					}
+				}
+			}
+			commands = append(commands, finalCommand)
+		} else {
+			commands = append(commands, option.Command)
+		}
+	}
+	return commands
+}
+
 // command: start. spawn procs.
 func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
-	err := readProcfile(cfg)
+	// Read configuration file
+	b, err := os.ReadFile("goreman.yml")
+	if err != nil {
+		//level.Error(l).Log("msg", "error reading config file", "err", err)
+		fmt.Println("err", err)
+	}
+
+	var configuration Configuration
+	if err := yaml.Unmarshal(b, &configuration); err != nil {
+		//level.Error(l).Log("msg", "error unmarshalling config", "err", err)
+		fmt.Println("err", err)
+	}
+
+	err = readProcfile(configuration)
 	if err != nil {
 		return err
 	}
@@ -264,17 +313,8 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 		mu.Unlock()
 	}
 	godotenv.Load()
-	rpcChan := make(chan *rpcMessage, 10)
-	if *startRPCServer {
-		go startServer(ctx, rpcChan, cfg.Port)
-	}
-	procsErr := startProcs(sig, rpcChan, cfg.ExitOnError)
+	procsErr := startProcs(sig, cfg.ExitOnError)
 	return procsErr
-}
-
-func showVersion() {
-	fmt.Fprintf(os.Stdout, "%s\n", version)
-	os.Exit(0)
 }
 
 func main() {
@@ -291,31 +331,11 @@ func main() {
 
 	cmd := cfg.Args[0]
 	switch cmd {
-	case "check":
-		err = check(cfg)
-	case "help":
-		usage()
-	case "run":
-		if len(cfg.Args) >= 2 {
-			cmd, args := cfg.Args[1], cfg.Args[2:]
-			err = run(cmd, args, cfg.Port)
-		} else {
-			usage()
-		}
-	case "export":
-		if len(cfg.Args) == 3 {
-			format, path := cfg.Args[1], cfg.Args[2]
-			err = export(cfg, format, path)
-		} else {
-			usage()
-		}
 	case "start":
 		c := notifyCh()
 		err = start(context.Background(), c, cfg)
-	case "version":
-		showVersion()
 	default:
-		usage()
+		fmt.Println("invalid option")
 	}
 
 	if err != nil {

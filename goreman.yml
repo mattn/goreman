@@ -1,0 +1,12 @@
+cloudsql-contentdb:
+    command: cloud_sql_proxy -instances=justwatch-compute:europe-west1:prod-contentdb=tcp:0.0.0.0:{{.port}}
+    environment: prod
+    enable: true
+    variables:
+        - port: 10001
+cloudsql-contentdb-replica:
+    command: cloud_sql_proxy -instances=justwatch-compute:europe-west1:prod-contentdb-1=tcp:0.0.0.0:{{.port}}
+    environment: prod
+    enable: false
+    variables:
+        - port: 10002

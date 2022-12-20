@@ -1,3 +1,11 @@
+The goal of this refactor is to add more ways to customize that are not possible in a pure Procfile
+
+- Set port
+- Enable / disable config entry
+- Configure / log environment
+
+
+
 # Goreman
 
 Clone of foreman written in golang.
