@@ -1,6 +1,6 @@
 module github.com/mattn/goreman
 
-go 1.17
+go 1.19
 
 require (
 	github.com/joho/godotenv v1.4.0
@@ -9,8 +9,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require (
-	github.com/go-kit/log v0.2.1 // indirect
-	github.com/go-logfmt/logfmt v0.5.1 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
-)
+require github.com/mattn/go-isatty v0.0.14 // indirect

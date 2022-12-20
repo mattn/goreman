@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,12 +12,13 @@ import (
 )
 
 type clogger struct {
-	idx     int
-	name    string
-	writes  chan []byte
-	done    chan struct{}
-	timeout time.Duration // how long to wait before printing partial lines
-	buffers buffers       // partial lines awaiting printing
+	idx         int
+	name        string
+	environment string
+	writes      chan []byte
+	done        chan struct{}
+	timeout     time.Duration // how long to wait before printing partial lines
+	buffers     buffers       // partial lines awaiting printing
 }
 
 var colors = []int{
@@ -63,12 +65,9 @@ func (v *buffers) WriteTo(w io.Writer) (n int64, err error) {
 func (l *clogger) writeBuffers(line []byte) {
 	mutex.Lock()
 	fmt.Fprintf(out, "\x1b[%dm", colors[l.idx])
-	if *logTime {
-		now := time.Now().Format("15:04:05")
-		fmt.Fprintf(out, "%s %*s | ", now, maxProcNameLength, l.name)
-	} else {
-		fmt.Fprintf(out, "%*s | ", maxProcNameLength, l.name)
-	}
+	now := time.Now().Format("15:04:05")
+	// Pretty print the environment, we remove it from the proc name again. There it only exists so services with the same name across environments are still unique.
+	fmt.Fprintf(out, "%s %*s (%s) | ", now, maxProcNameLength, strings.Replace(l.name, "-"+l.environment, "", -1), l.environment)
 	fmt.Fprintf(out, "\x1b[m")
 	l.buffers = append(l.buffers, line)
 	l.buffers.WriteTo(out)
@@ -128,10 +127,10 @@ func (l *clogger) Write(p []byte) (int, error) {
 }
 
 // create logger instance.
-func createLogger(name string, colorIndex int) *clogger {
+func createLogger(name string, environment string, colorIndex int) *clogger {
 	mutex.Lock()
 	defer mutex.Unlock()
-	l := &clogger{idx: colorIndex, name: name, writes: make(chan []byte), done: make(chan struct{}), timeout: 2 * time.Millisecond}
+	l := &clogger{idx: colorIndex, name: name, environment: environment, writes: make(chan []byte), done: make(chan struct{}), timeout: 2 * time.Millisecond}
 	go l.writeLines()
 	return l
 }
