@@ -1,3 +1,4 @@
-/goreman
-/goxz
-*.exe
+
+.idea
+.git
+.cover

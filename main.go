@@ -98,6 +98,9 @@ var exitOnStop = flag.Bool("exit-on-stop", true, "Exit goreman if all subprocess
 // show timestamp in log
 var logTime = flag.Bool("logtime", true, "show timestamp in log")
 
+// start proc interval (sec)
+var interval = flag.Uint("interval", 0, "start proc interval (sec)")
+
 var maxProcNameLength = 0
 
 var re = regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)

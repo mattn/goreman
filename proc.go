@@ -142,6 +142,11 @@ func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool)
 
 	for _, proc := range procs {
 		startProc(proc.name, &wg, errCh)
+		// sleep N sec. because sometimes, dependencies checking between stateful services (procs)
+		//  will let it starting fail .
+		if *interval > 0 {
+			time.Sleep(time.Second * time.Duration(*interval))
+		}
 	}
 
 	allProcsDone := make(chan struct{}, 1)
