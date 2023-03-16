@@ -126,10 +126,22 @@ func restartProc(name string) error {
 // opportunity to stop.
 func stopProcs(sig os.Signal) error {
 	var err error
+	// reverse procs sort when stop
+	if *reverseOnStop {
+		tmp := make([]*procInfo, len(procs))
+		for i := 0; i < len(procs); i++ {
+			tmp[i] = procs[(len(procs)-1)-i]
+		}
+		procs = tmp
+	}
+
 	for _, proc := range procs {
 		stopErr := stopProc(proc.name, sig)
 		if stopErr != nil {
 			err = stopErr
+		}
+		if *interval > 0 {
+			time.Sleep(time.Second * time.Duration(*interval))
 		}
 	}
 	return err

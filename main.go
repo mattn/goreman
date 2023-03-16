@@ -99,7 +99,10 @@ var exitOnStop = flag.Bool("exit-on-stop", true, "Exit goreman if all subprocess
 var logTime = flag.Bool("logtime", true, "show timestamp in log")
 
 // start proc interval (sec)
-var interval = flag.Uint("interval", 0, "start proc interval (sec)")
+var interval = flag.Uint("interval", 0, "show timestamp in log")
+
+// reverse procs sort when stop
+var reverseOnStop = flag.Bool("reverse-on-stop", false, "reverse procs sort when stop")
 
 var maxProcNameLength = 0
 
