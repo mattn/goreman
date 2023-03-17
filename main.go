@@ -186,7 +186,10 @@ func defaultServer(serverPort uint) string {
 	if s, ok := os.LookupEnv("GOREMAN_RPC_SERVER"); ok {
 		return s
 	}
-	return fmt.Sprintf("127.0.0.1:%d", defaultPort())
+	if serverPort == 0 {
+		serverPort = defaultPort()
+	}
+	return fmt.Sprintf("127.0.0.1:%d", serverPort)
 }
 
 func defaultAddr() string {
