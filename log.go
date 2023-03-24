@@ -20,12 +20,14 @@ type clogger struct {
 }
 
 var colors = []int{
+	//30, // break
+	31, // red
 	32, // green
-	36, // cyan
-	35, // magenta
 	33, // yellow
 	34, // blue
-	31, // red
+	35, // magenta
+	36, // cyan
+	37, // write txt, break ground
 }
 var mutex = new(sync.Mutex)
 
