@@ -16,7 +16,7 @@ func spawnProc(name string, errCh chan<- error) {
 
 	cs := append(cmdStart, proc.cmdline)
 	cmd := exec.Command(cs[0], cs[1:]...)
-	cmd.Stdin = nil
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = logger
 	cmd.Stderr = logger
 	cmd.SysProcAttr = procAttrs
