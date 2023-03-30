@@ -41,7 +41,7 @@ func terminateProc(proc *procInfo, signal os.Signal) error {
 	return target.Signal(signal)
 }
 
-// killProc kills the proc with pid pid, as well as its children.
+// killProc kills the proc with pid, as well as its children.
 func killProc(process *os.Process) error {
 	return unix.Kill(-1*process.Pid, unix.SIGKILL)
 }
