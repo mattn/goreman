@@ -1,5 +1,5 @@
 BIN := goreman
-VERSION := $$(make -s show-version)
+VERSION = $(shell cat version)
 CURRENT_REVISION := $(shell git rev-parse --short HEAD)
 BUILD_LDFLAGS := "-s -w -X main.revision=$(CURRENT_REVISION)"
 GOBIN ?= $(shell go env GOPATH)/bin
@@ -17,8 +17,8 @@ install:
 	go install -ldflags=$(BUILD_LDFLAGS) .
 
 .PHONY: show-version
-show-version: $(GOBIN)/gobump
-	gobump show -r .
+show-version:
+	@echo $(VERSION)
 
 $(GOBIN)/gobump:
 	go install github.com/x-motemen/gobump/cmd/gobump@latest

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -23,9 +24,11 @@ import (
 // time by goreleaser (see .goreleaser.yml).
 const (
 	name     = "goreman"
-	version  = "0.3.15"
 	revision = "HEAD"
 )
+
+//go:embed version
+var version string
 
 func usage() {
 	fmt.Fprint(os.Stderr, `Tasks:
