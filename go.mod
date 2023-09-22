@@ -9,4 +9,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/mattn/go-isatty v0.0.17 // indirect
+require (
+	github.com/creack/pty v1.1.18
+	github.com/mattn/go-isatty v0.0.17 // indirect
+)

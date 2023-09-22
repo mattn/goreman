@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 
@@ -62,4 +63,10 @@ func notifyCh() <-chan os.Signal {
 	sc := make(chan os.Signal, 10)
 	signal.Notify(sc, os.Interrupt)
 	return sc
+}
+
+// This is a no-op on Windows.
+func startPTY(logger *clogger, cmd *exec.Cmd) error {
+	cmd.Stdout = logger
+	cmd.Stderr = logger
 }

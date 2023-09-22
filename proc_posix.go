@@ -4,9 +4,13 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 
+	"github.com/creack/pty"
 	"golang.org/x/sys/unix"
 )
 
@@ -50,4 +54,22 @@ func notifyCh() <-chan os.Signal {
 	sc := make(chan os.Signal, 10)
 	signal.Notify(sc, sigterm, sigint, sighup)
 	return sc
+}
+
+func startPTY(logger *clogger, cmd *exec.Cmd) error {
+	if *usePty {
+		p, t, err := pty.Open()
+		if err != nil {
+			return fmt.Errorf("failed to open PTY: %w", err)
+		}
+		defer p.Close()
+		defer t.Close()
+		cmd.Stdout = t
+		cmd.Stderr = t
+		go io.Copy(logger, p)
+	} else {
+		cmd.Stdout = logger
+		cmd.Stderr = logger
+	}
+	return nil
 }

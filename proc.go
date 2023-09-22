@@ -17,10 +17,16 @@ func spawnProc(name string, errCh chan<- error) {
 	cs := append(cmdStart, proc.cmdline)
 	cmd := exec.Command(cs[0], cs[1:]...)
 	cmd.Stdin = nil
-	cmd.Stdout = logger
-	cmd.Stderr = logger
 	cmd.SysProcAttr = procAttrs
 
+	if err := startPTY(logger, cmd); err != nil {
+		select {
+		case errCh <- err:
+		default:
+		}
+		fmt.Fprintf(logger, "Failed to open pty for %s: %s\n", name, err)
+		return
+	}
 	if proc.setPort {
 		cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", proc.port))
 		fmt.Fprintf(logger, "Starting %s on port %d\n", name, proc.port)
