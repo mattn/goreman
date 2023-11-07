@@ -98,6 +98,9 @@ var exitOnStop = flag.Bool("exit-on-stop", true, "Exit goreman if all subprocess
 // show timestamp in log
 var logTime = flag.Bool("logtime", true, "show timestamp in log")
 
+// use a PTY for all subprocesses
+var usePty = flag.Bool("pty", false, "use a PTY for all subprocesses (noop on Windows)")
+
 var maxProcNameLength = 0
 
 var re = regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)
