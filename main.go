@@ -98,6 +98,8 @@ var exitOnStop = flag.Bool("exit-on-stop", true, "Exit goreman if all subprocess
 // show timestamp in log
 var logTime = flag.Bool("logtime", true, "show timestamp in log")
 
+var envFileOption = flag.String("env", ".env", "Environment files to load, comma separated")
+
 var maxProcNameLength = 0
 
 var re = regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)
@@ -109,6 +111,7 @@ type config struct {
 	BaseDir  string `yaml:"basedir"`
 	BasePort uint   `yaml:"baseport"`
 	Args     []string
+	EnvFiles []string
 	// If true, exit the supervisor process if a subprocess exits with an error.
 	ExitOnError bool `yaml:"exit_on_error"`
 }
@@ -125,6 +128,7 @@ func readConfig() *config {
 	cfg.Port = *port
 	cfg.BaseDir = *basedir
 	cfg.BasePort = *baseport
+	cfg.EnvFiles = strings.FieldsFunc(*envFileOption, func(char rune) bool { return char == ',' })
 	cfg.ExitOnError = *exitOnError
 	cfg.Args = flag.Args()
 
@@ -263,7 +267,9 @@ func start(ctx context.Context, sig <-chan os.Signal, cfg *config) error {
 		procs = tmp
 		mu.Unlock()
 	}
-	godotenv.Load()
+	if len(cfg.EnvFiles) > 0 {
+		godotenv.Load(cfg.EnvFiles...)
+	}
 	rpcChan := make(chan *rpcMessage, 10)
 	if *startRPCServer {
 		go startServer(ctx, rpcChan, cfg.Port)
