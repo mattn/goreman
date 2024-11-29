@@ -98,6 +98,12 @@ var exitOnStop = flag.Bool("exit-on-stop", true, "Exit goreman if all subprocess
 // show timestamp in log
 var logTime = flag.Bool("logtime", true, "show timestamp in log")
 
+// start proc interval (sec)
+var interval = flag.Uint("interval", 0, "show timestamp in log")
+
+// reverse procs sort when stop
+var reverseOnStop = flag.Bool("reverse-on-stop", false, "reverse procs sort when stop")
+
 var maxProcNameLength = 0
 
 var re = regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)
@@ -180,7 +186,10 @@ func defaultServer(serverPort uint) string {
 	if s, ok := os.LookupEnv("GOREMAN_RPC_SERVER"); ok {
 		return s
 	}
-	return fmt.Sprintf("127.0.0.1:%d", defaultPort())
+	if serverPort == 0 {
+		serverPort = defaultPort()
+	}
+	return fmt.Sprintf("127.0.0.1:%d", serverPort)
 }
 
 func defaultAddr() string {
