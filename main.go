@@ -77,7 +77,7 @@ var procs []*procInfo
 var procfile = flag.String("f", "Procfile", "proc file")
 
 // rpc port number.
-var port = flag.Uint("p", defaultPort(), "port")
+var port = flag.Uint("p", defaultPort(0), "port")
 
 var startRPCServer = flag.Bool("rpc-server", true, "Start an RPC server listening on "+defaultAddr())
 
@@ -180,7 +180,7 @@ func defaultServer(serverPort uint) string {
 	if s, ok := os.LookupEnv("GOREMAN_RPC_SERVER"); ok {
 		return s
 	}
-	return fmt.Sprintf("127.0.0.1:%d", defaultPort())
+	return fmt.Sprintf("127.0.0.1:%d", defaultPort(serverPort))
 }
 
 func defaultAddr() string {
@@ -191,13 +191,16 @@ func defaultAddr() string {
 }
 
 // default port
-func defaultPort() uint {
+func defaultPort(serverPort uint) uint {
 	s := os.Getenv("GOREMAN_RPC_PORT")
 	if s != "" {
 		i, err := strconv.Atoi(s)
 		if err == nil {
 			return uint(i)
 		}
+	}
+	if serverPort > 0 {
+		return serverPort
 	}
 	return 8555
 }
