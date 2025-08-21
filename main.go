@@ -77,7 +77,7 @@ var procs []*procInfo
 var procfile = flag.String("f", "Procfile", "proc file")
 
 // rpc port number.
-var port = flag.Uint("p", defaultPort(), "port")
+var port = flag.Uint("p", defaultPort(0), "port")
 
 var startRPCServer = flag.Bool("rpc-server", true, "Start an RPC server listening on "+defaultAddr())
 
