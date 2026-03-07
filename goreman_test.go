@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 			panic(err)
 		}
 
-		code := `package main;import ("os";"strconv";"time");func main(){i,_:=strconv.ParseFloat(os.Args[1]);time.Sleep(time.Duration(i)*time.Second)}`
+		code := `package main;import ("os";"strconv";"time");func main(){i,_:=strconv.ParseFloat(os.Args[1],64);time.Sleep(time.Duration(i*float64(time.Second)))}`
 		dir, err := os.MkdirTemp("", "goreman-test")
 		if err != nil {
 			panic(err)
