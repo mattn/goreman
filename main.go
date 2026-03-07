@@ -148,7 +148,7 @@ func readProcfile(cfg *config) error {
 	index := 0
 	for _, line := range strings.Split(string(content), "\n") {
 		tokens := strings.SplitN(line, ":", 2)
-		if len(tokens) != 2 || tokens[0][0] == '#' {
+		if len(tokens) != 2 || len(tokens[0]) == 0 || tokens[0][0] == '#' {
 			continue
 		}
 		k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
@@ -180,7 +180,7 @@ func defaultServer(serverPort uint) string {
 	if s, ok := os.LookupEnv("GOREMAN_RPC_SERVER"); ok {
 		return s
 	}
-	return fmt.Sprintf("127.0.0.1:%d", defaultPort())
+	return fmt.Sprintf("127.0.0.1:%d", serverPort)
 }
 
 func defaultAddr() string {
@@ -319,7 +319,7 @@ func main() {
 	}
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", os.Args[0], err.Error())
+		fmt.Fprintf(os.Stderr, "%s: %v\n", os.Args[0], err)
 		os.Exit(1)
 	}
 }
