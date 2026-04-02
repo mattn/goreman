@@ -1,4 +1,3 @@
-web1: plackup --port $PORT
-web2: plackup --port $PORT
-web3: bundle exec ruby web.rb
-web4: go run web.go -a :$PORT
+web1: python3 web.py
+web2: bundle exec ruby web.rb
+web3: go run web.go -a :$PORT

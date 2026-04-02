@@ -1,8 +1,21 @@
-require 'sinatra'
+require "webrick"
 
-set :port, ENV["PORT"]||'4567'
+port = Integer(ENV.fetch("PORT", "4567"))
 
-get '/' do
-  content_type "text/plain; charset=utf-8"
-  "hello #{ENV["AUTHOR"]}"
+server = WEBrick::HTTPServer.new(
+  Port: port,
+  BindAddress: "0.0.0.0",
+  AccessLog: [],
+  Logger: WEBrick::Log.new($stderr, WEBrick::Log::FATAL)
+)
+
+server.mount_proc "/" do |_req, res|
+  res.status = 200
+  res["Content-Type"] = "text/plain; charset=utf-8"
+  res.body = "hello #{ENV.fetch("AUTHOR", "")}"
 end
+
+trap("INT") { server.shutdown }
+trap("TERM") { server.shutdown }
+
+server.start
