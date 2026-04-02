@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 		}
 
 		code := `package main;import ("os";"strconv";"time");func main(){i,_:=strconv.ParseFloat(os.Args[1],64);time.Sleep(time.Duration(i*float64(time.Second)))}`
-		dir, err := os.MkdirTemp("", "goreman-test")
+		dir, err = os.MkdirTemp("", "goreman-test")
 		if err != nil {
 			panic(err)
 		}
