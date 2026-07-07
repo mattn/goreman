@@ -100,7 +100,7 @@ var logTime = flag.Bool("logtime", true, "show timestamp in log")
 
 var maxProcNameLength = 0
 
-var re = regexp.MustCompile(`\$([a-zA-Z]+[a-zA-Z0-9_]+)`)
+var re = regexp.MustCompile(`\$([a-zA-Z_][a-zA-Z0-9_]*)`)
 
 type config struct {
 	Procfile string `yaml:"procfile"`
