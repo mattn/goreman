@@ -120,9 +120,16 @@ func (r *Goreman) Status(args []string, ret *string) (err error) {
 			err = r.(error)
 		}
 	}()
+	mu.Lock()
+	ps := make([]*procInfo, len(procs))
+	copy(ps, procs)
+	mu.Unlock()
 	*ret = ""
-	for _, proc := range procs {
-		if proc.cmd != nil {
+	for _, proc := range ps {
+		proc.mu.Lock()
+		running := proc.cmd != nil
+		proc.mu.Unlock()
+		if running {
 			*ret += "*" + proc.name + "\n"
 		} else {
 			*ret += " " + proc.name + "\n"
