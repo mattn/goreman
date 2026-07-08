@@ -5,6 +5,9 @@ on:
     tags:
     - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Release
@@ -19,15 +22,6 @@ jobs:
     - name: Cross build
       run: make cross
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@master
+      run: gh release create "$GITHUB_REF_NAME" --title "Release $GITHUB_REF_NAME" --generate-notes goxz/*
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-    - name: Upload
-      run: make upload
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
