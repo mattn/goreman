@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -156,6 +158,35 @@ web1: sleep 0.2
 			time.Sleep(time.Millisecond)
 		}
 	}
+}
+
+func TestGoremanReleasesRPCPort(t *testing.T) {
+	f, err := os.CreateTemp("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte("web1: sleep 0.1\n")); err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config{
+		ExitOnError: true,
+		Procfile:    f.Name(),
+		Port:        18555,
+	}
+	if err := start(context.TODO(), notifyCh(), cfg); err != nil {
+		t.Fatal(err)
+	}
+	addr := fmt.Sprintf("%s:%d", defaultAddr(), cfg.Port)
+	for i := 0; i < 100; i++ {
+		var ln net.Listener
+		ln, err = net.Listen("tcp", addr)
+		if err == nil {
+			ln.Close()
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("RPC port was not released after goreman stopped: %v", err)
 }
 
 func TestGoremanStopProcDoesntStopOtherProcs(t *testing.T) {

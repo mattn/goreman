@@ -179,6 +179,10 @@ func startServer(ctx context.Context, rpcChan chan<- *rpcMessage, listenPort uin
 	if err != nil {
 		return err
 	}
+	go func() {
+		<-ctx.Done()
+		server.Close()
+	}()
 	var wg sync.WaitGroup
 	var acceptingConns = true
 	for acceptingConns {
