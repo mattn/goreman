@@ -26,7 +26,7 @@ type rpcMessage struct {
 func (r *Goreman) Start(args []string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			err = fmt.Errorf("%v", r)
 		}
 	}()
 	for _, arg := range args {
@@ -41,7 +41,7 @@ func (r *Goreman) Start(args []string, ret *string) (err error) {
 func (r *Goreman) Stop(args []string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			err = fmt.Errorf("%v", r)
 		}
 	}()
 	errChan := make(chan error, 1)
@@ -58,7 +58,7 @@ func (r *Goreman) Stop(args []string, ret *string) (err error) {
 func (r *Goreman) StopAll(args []string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			err = fmt.Errorf("%v", r)
 		}
 	}()
 	for _, proc := range procs {
@@ -73,7 +73,7 @@ func (r *Goreman) StopAll(args []string, ret *string) (err error) {
 func (r *Goreman) Restart(args []string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			err = fmt.Errorf("%v", r)
 		}
 	}()
 	for _, arg := range args {
@@ -88,7 +88,7 @@ func (r *Goreman) Restart(args []string, ret *string) (err error) {
 func (r *Goreman) RestartAll(args []string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			err = fmt.Errorf("%v", r)
 		}
 	}()
 	for _, proc := range procs {
@@ -103,7 +103,7 @@ func (r *Goreman) RestartAll(args []string, ret *string) (err error) {
 func (r *Goreman) List(args []string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			err = fmt.Errorf("%v", r)
 		}
 	}()
 	*ret = ""
@@ -117,7 +117,7 @@ func (r *Goreman) List(args []string, ret *string) (err error) {
 func (r *Goreman) Status(args []string, ret *string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			err = fmt.Errorf("%v", r)
 		}
 	}()
 	*ret = ""
