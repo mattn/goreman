@@ -134,6 +134,30 @@ web4: sleep 10
 	}
 }
 
+func TestGoremanStatusRace(t *testing.T) {
+	var file = []byte(`
+web1: sleep 0.2
+`)
+	done := make(chan struct{}, 1)
+	go func() {
+		startGoreman(context.TODO(), t, nil, file)
+		done <- struct{}{}
+	}()
+	gm := &Goreman{}
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			var ret string
+			if err := gm.Status(nil, &ret); err != nil {
+				t.Error(err)
+			}
+			time.Sleep(time.Millisecond)
+		}
+	}
+}
+
 func TestGoremanStopProcDoesntStopOtherProcs(t *testing.T) {
 	var file = []byte(`
 web1: sleep 10
