@@ -8,7 +8,7 @@ import (
 )
 
 func exportUpstart(cfg *config, path string) error {
-	for i, proc := range procs {
+	for _, proc := range procs {
 		f, err := os.Create(filepath.Join(path, "app-"+proc.name+".conf"))
 		if err != nil {
 			return err
@@ -40,7 +40,9 @@ func exportUpstart(cfg *config, path string) error {
 			}
 		}
 
-		fmt.Fprintf(f, "env PORT=%d\n", cfg.BasePort+uint(i))
+		if proc.setPort {
+			fmt.Fprintf(f, "env PORT=%d\n", proc.port)
+		}
 		for k, v := range env {
 			fmt.Fprintf(f, "env %s='%s'\n", k, strings.Replace(v, "'", "\\'", -1))
 		}
