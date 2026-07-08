@@ -66,6 +66,10 @@ type procInfo struct {
 	mu      sync.Mutex
 	cond    *sync.Cond
 	waitErr error
+
+	// logger is created on first spawn and reused across restarts so that
+	// restarting a proc does not leak the logger goroutine.
+	logger *clogger
 }
 
 var mu sync.Mutex
