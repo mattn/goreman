@@ -194,7 +194,7 @@ func defaultAddr() string {
 func defaultPort() uint {
 	s := os.Getenv("GOREMAN_RPC_PORT")
 	if s != "" {
-		i, err := strconv.Atoi(s)
+		i, err := strconv.ParseUint(s, 10, 16)
 		if err == nil {
 			return uint(i)
 		}
