@@ -148,10 +148,13 @@ func readProcfile(cfg *config) error {
 	index := 0
 	for _, line := range strings.Split(string(content), "\n") {
 		tokens := strings.SplitN(line, ":", 2)
-		if len(tokens) != 2 || len(tokens[0]) == 0 || tokens[0][0] == '#' {
+		if len(tokens) != 2 {
 			continue
 		}
 		k, v := strings.TrimSpace(tokens[0]), strings.TrimSpace(tokens[1])
+		if len(k) == 0 || k[0] == '#' {
+			continue
+		}
 		if runtime.GOOS == "windows" {
 			v = re.ReplaceAllStringFunc(v, func(s string) string {
 				return "%" + s[1:] + "%"
