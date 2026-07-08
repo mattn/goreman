@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -74,5 +75,5 @@ func export(cfg *config, format, path string) error {
 	case "upstart":
 		return exportUpstart(cfg, path)
 	}
-	return nil
+	return errors.New("unknown format: " + format)
 }
