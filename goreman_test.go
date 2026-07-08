@@ -189,6 +189,47 @@ func TestGoremanReleasesRPCPort(t *testing.T) {
 	t.Fatalf("RPC port was not released after goreman stopped: %v", err)
 }
 
+func TestGoremanRestartDoesntLeakGoroutines(t *testing.T) {
+	var file = []byte(`
+web1: sleep 10
+`)
+	sc := make(chan os.Signal, 1)
+	done := make(chan struct{}, 1)
+	go func() {
+		startGoreman(context.TODO(), t, sc, file)
+		done <- struct{}{}
+	}()
+	waitRunning := func() {
+		for {
+			proc := findProc("web1")
+			if proc != nil {
+				proc.mu.Lock()
+				cmd := proc.cmd
+				proc.mu.Unlock()
+				if cmd != nil && cmd.Process != nil {
+					return
+				}
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+	}
+	waitRunning()
+	before := runtime.NumGoroutine()
+	for i := 0; i < 20; i++ {
+		if err := restartProc("web1"); err != nil {
+			t.Fatal(err)
+		}
+		waitRunning()
+	}
+	after := runtime.NumGoroutine()
+	t.Logf("goroutines: before=%d after=%d", before, after)
+	if after-before > 10 {
+		t.Errorf("restarting leaked goroutines: %d before, %d after", before, after)
+	}
+	sc <- os.Interrupt
+	<-done
+}
+
 func TestGoremanStopProcDoesntStopOtherProcs(t *testing.T) {
 	var file = []byte(`
 web1: sleep 10
