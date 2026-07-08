@@ -189,6 +189,42 @@ func TestGoremanReleasesRPCPort(t *testing.T) {
 	t.Fatalf("RPC port was not released after goreman stopped: %v", err)
 }
 
+func TestGoremanRestartAllKeepsSupervisorAlive(t *testing.T) {
+	f, err := os.CreateTemp("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write([]byte("web1: sleep 10\nweb2: sleep 10\n")); err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config{
+		Procfile: f.Name(),
+		Port:     18556,
+	}
+	sc := make(chan os.Signal, 1)
+	done := make(chan struct{}, 1)
+	go func() {
+		start(context.TODO(), sc, cfg)
+		done <- struct{}{}
+	}()
+	for i := 0; ; i++ {
+		if err = run("restart-all", nil, cfg.Port); err == nil {
+			break
+		}
+		if i > 100 {
+			t.Fatalf("could not reach RPC server: %v", err)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	select {
+	case <-done:
+		t.Fatal("restart-all should not have stopped the supervisor")
+	case <-time.After(500 * time.Millisecond):
+	}
+	sc <- os.Interrupt
+	<-done
+}
+
 func TestGoremanRestartDoesntLeakGoroutines(t *testing.T) {
 	var file = []byte(`
 web1: sleep 10
@@ -216,7 +252,7 @@ web1: sleep 10
 	waitRunning()
 	before := runtime.NumGoroutine()
 	for i := 0; i < 20; i++ {
-		if err := restartProc("web1"); err != nil {
+		if err := restartProc("web1", nil, nil); err != nil {
 			t.Fatal(err)
 		}
 		waitRunning()

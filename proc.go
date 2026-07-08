@@ -117,12 +117,18 @@ func startProc(name string, wg *sync.WaitGroup, errCh chan<- error) error {
 }
 
 // restart specified proc.
-func restartProc(name string) error {
+func restartProc(name string, wg *sync.WaitGroup, errCh chan<- error) error {
+	if wg != nil {
+		// keep the proc counted between stop and start so the supervisor
+		// does not see "all procs done" in the middle of a restart.
+		wg.Add(1)
+		defer wg.Done()
+	}
 	err := stopProc(name, nil)
 	if err != nil {
 		return err
 	}
-	return startProc(name, nil, nil)
+	return startProc(name, wg, errCh)
 }
 
 // stopProcs attempts to stop every running process and returns any non-nil
@@ -160,6 +166,30 @@ func startProcs(sc <-chan os.Signal, rpcCh <-chan *rpcMessage, exitOnError bool)
 		case rpcMsg := <-rpcCh:
 			switch rpcMsg.Msg {
 			// TODO: add more events here.
+			case "start":
+				for _, proc := range rpcMsg.Args {
+					if err := startProc(proc, &wg, errCh); err != nil {
+						rpcMsg.ErrCh <- err
+						break
+					}
+				}
+				close(rpcMsg.ErrCh)
+			case "restart":
+				names := rpcMsg.Args
+				if len(names) == 0 {
+					mu.Lock()
+					for _, proc := range procs {
+						names = append(names, proc.name)
+					}
+					mu.Unlock()
+				}
+				for _, proc := range names {
+					if err := restartProc(proc, &wg, errCh); err != nil {
+						rpcMsg.ErrCh <- err
+						break
+					}
+				}
+				close(rpcMsg.ErrCh)
 			case "stop":
 				for _, proc := range rpcMsg.Args {
 					if err := stopProc(proc, nil); err != nil {
