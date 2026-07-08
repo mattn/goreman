@@ -22,6 +22,17 @@ type rpcMessage struct {
 	ErrCh chan error
 }
 
+// rpcExec sends the message to the supervisor loop and waits for the result.
+func (r *Goreman) rpcExec(msg string, args []string) error {
+	errChan := make(chan error, 1)
+	r.rpcChan <- &rpcMessage{
+		Msg:   msg,
+		Args:  args,
+		ErrCh: errChan,
+	}
+	return <-errChan
+}
+
 // Start do start
 func (r *Goreman) Start(args []string, ret *string) (err error) {
 	defer func() {
@@ -29,12 +40,7 @@ func (r *Goreman) Start(args []string, ret *string) (err error) {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
-	for _, arg := range args {
-		if err = startProc(arg, nil, nil); err != nil {
-			break
-		}
-	}
-	return err
+	return r.rpcExec("start", args)
 }
 
 // Stop do stop
@@ -44,14 +50,7 @@ func (r *Goreman) Stop(args []string, ret *string) (err error) {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
-	errChan := make(chan error, 1)
-	r.rpcChan <- &rpcMessage{
-		Msg:   "stop",
-		Args:  args,
-		ErrCh: errChan,
-	}
-	err = <-errChan
-	return
+	return r.rpcExec("stop", args)
 }
 
 // StopAll do stop all
@@ -76,12 +75,7 @@ func (r *Goreman) Restart(args []string, ret *string) (err error) {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
-	for _, arg := range args {
-		if err = restartProc(arg); err != nil {
-			break
-		}
-	}
-	return err
+	return r.rpcExec("restart", args)
 }
 
 // RestartAll do restart all
@@ -91,12 +85,7 @@ func (r *Goreman) RestartAll(args []string, ret *string) (err error) {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
-	for _, proc := range procs {
-		if err = restartProc(proc.name); err != nil {
-			break
-		}
-	}
-	return err
+	return r.rpcExec("restart", nil)
 }
 
 // List do list
@@ -174,7 +163,12 @@ func startServer(ctx context.Context, rpcChan chan<- *rpcMessage, listenPort uin
 	gm := &Goreman{
 		rpcChan: rpcChan,
 	}
-	rpc.Register(gm)
+	// use a dedicated rpc.Server so repeated startServer calls in one
+	// process do not keep serving a previously registered instance.
+	rpcServer := rpc.NewServer()
+	if err := rpcServer.Register(gm); err != nil {
+		return err
+	}
 	server, err := net.Listen("tcp", fmt.Sprintf("%s:%d", defaultAddr(), listenPort))
 	if err != nil {
 		return err
@@ -202,7 +196,7 @@ func startServer(ctx context.Context, rpcChan chan<- *rpcMessage, listenPort uin
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				rpc.ServeConn(client)
+				rpcServer.ServeConn(client)
 			}()
 		}
 	}
