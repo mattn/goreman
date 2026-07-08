@@ -48,7 +48,7 @@ ifneq ($(shell git rev-parse --abbrev-ref HEAD),master)
 	$(error current branch is not master)
 endif
 	@gobump up -w .
-	git commit -am "bump up version to $(VERSION)"
+	git commit -am "Bump up version to $(VERSION)"
 	git tag "v$(VERSION)"
 	git push origin master
 	git push origin "refs/tags/v$(VERSION)"
